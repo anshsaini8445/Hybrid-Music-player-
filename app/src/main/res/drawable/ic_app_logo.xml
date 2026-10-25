@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Dark Modern Circular Background -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M54,4A50,50 0,1 1,4 54A50,50 0,0 1,54 4Z" />
+
+    <!-- Outer Neon Accent Ring -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M54,10A44,44 0,1 0,98 54A44,44 0,0 0,54 10ZM54,92A38,38 0,1 1,92 54A38,38 0,0 1,54 92Z" />
+
+    <!-- Musical Note & Equalizer Pulse Center -->
+    <path
+        android:fillColor="#FF2E93"
+        android:pathData="M46,32v29.5c-2.2,-1.6 -5,-2.5 -8,-2.5c-6.6,0 -12,4.5 -12,10s5.4,10 12,10s12,-4.5 12,-10V42h20v15.5c-2.2,-1.6 -5,-2.5 -8,-2.5c-6.6,0 -12,4.5 -12,10s5.4,10 12,10s12,-4.5 12,-10V32H46z" />
+</vector>
