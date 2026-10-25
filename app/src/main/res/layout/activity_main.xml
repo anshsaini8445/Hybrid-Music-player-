@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0F19">
+
+    <!-- Top Header Bar -->
+    <LinearLayout
+        android:id="@+id/topHeaderBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#161F30"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <TextView
+            android:id="@+id/appTitleText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Hybrid Music Player ★"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Muso Dancing Puppy View in Header -->
+        <com.hybridmusic.player.DancingPuppyView
+            android:id="@+id/headerPuppyView"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="10dp" />
+
+        <ImageView
+            android:id="@+id/profileThemeButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Themes"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_manage"
+            android:tint="#00E5FF" />
+    </LinearLayout>
+
+    <!-- Bottom Navigation Bar (Songs, Search, MI Settings) -->
+    <LinearLayout
+        android:id="@+id/bottomNavBar"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_alignParentBottom="true"
+        android:background="#161F30"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/navSongsBtn"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:text="Songs"
+            android:textColor="#00E5FF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/navSearchBtn"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:text="Search"
+            android:textColor="#CBD5E1"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/navSettingsBtn"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:text="Settings (MI)"
+            android:textColor="#CBD5E1"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Bottom Mini Player Bar -->
+    <LinearLayout
+        android:id="@+id/miniPlayerBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_above="@id/bottomNavBar"
+        android:background="#1E293B"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp">
+
+        <ImageView
+            android:id="@+id/miniThumbnail"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:scaleType="centerCrop"
+            android:src="@android:drawable/ic_media_play" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/miniTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:marqueeLimit="marquee_forever"
+                android:singleLine="true"
+                android:text="No Song Playing"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/miniArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Select a song to start"
+                android:textColor="#CBD5E1"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/miniPlayPauseBtn"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:background="@android:drawable/ic_media_play"
+            android:backgroundTint="#00E5FF" />
+    </LinearLayout>
+
+    <!-- Main Content Container (Songs / Search / Settings / Player) -->
+    <FrameLayout
+        android:id="@+id/mainContentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/miniPlayerBar"
+        android:layout_below="@id/topHeaderBar" />
+
+</RelativeLayout>
