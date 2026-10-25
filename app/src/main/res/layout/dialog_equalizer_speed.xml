@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#161F30"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Audio Control Center"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="14dp" />
+
+    <TextView
+        android:id="@+id/speedTextValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Playback Speed: 1.00x"
+        android:textColor="#CBD5E1"
+        android:textSize="14sp" />
+
+    <SeekBar
+        android:id="@+id/speedSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="14dp"
+        android:max="50" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Custom Sleep Timer (Minutes)"
+        android:textColor="#CBD5E1"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="16dp">
+
+        <EditText
+            android:id="@+id/customMinuteInput"
+            android:layout_width="0dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:background="#1E293B"
+            android:hint="Enter mins (e.g. 5, 75, 90)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#64748B"
+            android:textSize="14sp"
+            android:inputType="number"
+            android:paddingHorizontal="10dp" />
+
+        <Button
+            android:id="@+id/setCustomTimerButton"
+            android:layout_width="wrap_content"
+            android:layout_height="45dp"
+            android:layout_marginStart="10dp"
+            android:text="Set Timer"
+            android:textColor="#000000"
+            android:backgroundTint="#00E5FF" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/closeDialogBtn"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        android:text="Close"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#334155" />
+
+</LinearLayout>
