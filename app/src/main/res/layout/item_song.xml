@@ -1,28 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="68dp"
+    android:layout_height="66dp"
     android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="14dp"
-    android:paddingVertical="8dp">
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="6dp">
 
-    <!-- Song Thumbnail / Album Art -->
     <ImageView
         android:id="@+id/songThumbnail"
         android:layout_width="48dp"
         android:layout_height="48dp"
+        android:padding="2dp"
         android:scaleType="centerCrop"
-        android:background="#1E293B"
         android:src="@android:drawable/ic_media_play" />
 
-    <!-- Title & Artist Info -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:layout_marginStart="12dp"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
@@ -31,7 +29,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Track Title"
+            android:text="Song Title"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -40,23 +38,21 @@
             android:id="@+id/songArtist"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Artist • 03:45"
+            android:text="Singer Name • 03:45"
             android:textColor="#CBD5E1"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Three Dot Menu Button -->
     <ImageView
         android:id="@+id/threeDotButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Options"
+        android:contentDescription="More Options"
         android:padding="8dp"
-        android:src="@android:drawable/ic_menu_more"
-        android:tint="#CBD5E1" />
+        android:src="@android:drawable/ic_menu_more" />
 
 </LinearLayout>
