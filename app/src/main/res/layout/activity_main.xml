@@ -1,153 +1,662 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0B0F19">
 
-    <!-- Top Header Bar -->
-    <LinearLayout
-        android:id="@+id/topHeaderBar"
+    <!-- Optional Custom Gallery Theme Photo Background -->
+    <ImageView
+        android:id="@+id/customThemeBgImage"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="#161F30"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp">
+        android:layout_height="match_parent"
+        android: alpha="0.35"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/appTitleText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Hybrid Music Player ★"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <!-- Muso Dancing Puppy View in Header -->
-        <com.hybridmusic.player.DancingPuppyView
-            android:id="@+id/headerPuppyView"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="10dp" />
-
-        <ImageView
-            android:id="@+id/profileThemeButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Themes"
-            android:padding="6dp"
-            android:src="@android:drawable/ic_menu_manage"
-            android:tint="#00E5FF" />
-    </LinearLayout>
-
-    <!-- Bottom Navigation Bar (Songs, Search, MI Settings) -->
-    <LinearLayout
-        android:id="@+id/bottomNavBar"
+    <!-- MAIN SCREEN LAYER -->
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:layout_alignParentBottom="true"
-        android:background="#161F30"
-        android:orientation="horizontal"
-        android:gravity="center">
+        android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/navSongsBtn"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:text="Songs"
-            android:textColor="#00E5FF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/navSearchBtn"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:text="Search"
-            android:textColor="#CBD5E1"
-            android:textSize="13sp" />
-
-        <Button
-            android:id="@+id/navSettingsBtn"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:text="Settings (MI)"
-            android:textColor="#CBD5E1"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- Bottom Mini Player Bar -->
-    <LinearLayout
-        android:id="@+id/miniPlayerBar"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:layout_above="@id/bottomNavBar"
-        android:background="#1E293B"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="14dp">
-
-        <ImageView
-            android:id="@+id/miniThumbnail"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:scaleType="centerCrop"
-            android:src="@android:drawable/ic_media_play" />
-
+        <!-- 1. Top Header: Hybrid Music Player + Star + Dancing Puppy + Sort + Profile Icon -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:orientation="vertical">
+            android:id="@+id/topHeaderBar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#161F30"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
 
             <TextView
-                android:id="@+id/miniTitle"
-                android:layout_width="match_parent"
+                android:id="@+id/appTitleText"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:ellipsize="marquee"
-                android:marqueeLimit="marquee_forever"
-                android:singleLine="true"
-                android:text="No Song Playing"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Hybrid Music Player ★"
                 android:textColor="#FFFFFF"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <com.hybridmusic.player.DancingPuppyView
+                android:id="@+id/headerPuppyView"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/topSortMenuBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:backgroundTint="#1E293B"
+                android:paddingHorizontal="8dp"
+                android:text="Sort ⋮"
+                android:textColor="#00E5FF"
+                android:textSize="11sp" />
+
+            <ImageView
+                android:id="@+id/profileThemeButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="5dp"
+                android:src="@android:drawable/ic_menu_myplaces" />
+        </LinearLayout>
+
+        <!-- 2. Top Category Tabs (All Songs, Video-Audio, Favorites, Playlists, Folders, Artists) -->
+        <HorizontalScrollView
+            android:id="@+id/categoryTabsScroll"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_below="@id/topHeaderBar"
+            android:background="#111827"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp">
+
+                <Button
+                    android:id="@+id/tabAllSongs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="All Songs"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/tabVideoAudio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="Video Songs (Audio)"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/tabFavorites"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="Favorites"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/tabPlaylists"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="Playlists"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/tabFolders"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="Folders"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/tabArtists"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:text="Artists"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- 3. Bottom Navigation Bar (Songs, Search, Settings MI) -->
+        <LinearLayout
+            android:id="@+id/bottomNavBar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_alignParentBottom="true"
+            android:background="#161F30"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/navSongsBtn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:text="🎵 Songs"
+                android:textColor="#00E5FF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/navSearchBtn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:text="🔍 Search"
+                android:textColor="#CBD5E1"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/navSettingsBtn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:text="⚙️ Settings (MI)"
+                android:textColor="#CBD5E1"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- 4. Bottom Mini Player Bar (Marquee Song Title + Singer Name + Play/Pause Do Dande) -->
+        <LinearLayout
+            android:id="@+id/miniPlayerBar"
+            android:layout_width="match_parent"
+            android:layout_height="62dp"
+            android:layout_above="@id/bottomNavBar"
+            android:background="#1E293B"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <ImageView
+                android:id="@+id/miniThumbnail"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:scaleType="centerCrop"
+                android:src="@android:drawable/ic_media_play" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/miniTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:scrollHorizontally="true"
+                    android:singleLine="true"
+                    android:text="Tap any song to start playing"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/miniArtist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Hybrid Music Player"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/miniPlayPauseBtn"
+                android:layout_width="46dp"
+                android:layout_height="42dp"
+                android:backgroundTint="#00E5FF"
+                android:text="▶"
+                android:textColor="#000000"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/miniNextBtn"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="4dp"
+                android:backgroundTint="#334155"
+                android:text="⏭"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- 5. Dynamic Content Area (Songs List / Bottom Search / MI Settings) -->
+        <FrameLayout
+            android:id="@+id/mainContentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/miniPlayerBar"
+            android:layout_below="@id/categoryTabsScroll" />
+    </RelativeLayout>
+
+    <!-- FULL MUSIC PLAYER OVERLAY -->
+    <RelativeLayout
+        android:id="@+id/fullPlayerOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0F19"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <!-- Full Player Top Row -->
+        <LinearLayout
+            android:id="@+id/fpTopBar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/fpCloseBtn"
+                android:layout_width="44dp"
+                android:layout_height="40dp"
+                android:backgroundTint="#1E293B"
+                android:text="▼"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/fpHeaderStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Now Playing"
+                android:textColor="#00E5FF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/miniArtist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="Select a song to start"
-                android:textColor="#CBD5E1"
-                android:textSize="12sp" />
+            <com.hybridmusic.player.DancingPuppyView
+                android:id="@+id/fpPuppyView"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/fpQueueBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
+                android:backgroundTint="#1E293B"
+                android:text="Queue (0/0)"
+                android:textColor="#00E5FF"
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/fpThreeDotBtn"
+                android:layout_width="42dp"
+                android:layout_height="38dp"
+                android:backgroundTint="#1E293B"
+                android:text="⋮"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/miniPlayPauseBtn"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:background="@android:drawable/ic_media_play"
-            android:backgroundTint="#00E5FF" />
-    </LinearLayout>
+        <!-- Center Area: Square Art / Vinyl Disc + Danda OR Online Lyrics View -->
+        <FrameLayout
+            android:id="@+id/fpCenterArea"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/fpSongInfoSection"
+            android:layout_below="@id/fpTopBar"
+            android:layout_marginVertical="8dp">
 
-    <!-- Main Content Container (Songs / Search / Settings / Player) -->
-    <FrameLayout
-        android:id="@+id/mainContentContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@id/miniPlayerBar"
-        android:layout_below="@id/topHeaderBar" />
+            <com.hybridmusic.player.AlbumArtDiscView
+                android:id="@+id/fpAlbumArtDiscView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
-</RelativeLayout>
+            <!-- Lyrics Box (Shown when swiping Square Box Right-to-Left) -->
+            <LinearLayout
+                android:id="@+id/fpLyricsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#D9111827"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:id="@+id/fpLyricsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:lineSpacingExtra="6dp"
+                        android:text="Swipe right-to-left or tap Find Lyrics Online..."
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp" />
+                </ScrollView>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/fpFindLyricsOnlineBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="8dp"
+                        android:backgroundTint="#00E5FF"
+                        android:text="🌐 Find Online Lyrics"
+                        android:textColor="#000000"
+                        android:textSize="11sp" />
+
+                    <!-- Favorite / Like Button Inside Lyrics Section as Requested -->
+                    <Button
+                        android:id="@+id/fpLyricsFavBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="8dp"
+                        android:backgroundTint="#FF2E93"
+                        android:text="♡ Add Favorite"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/fpBackToArtBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:backgroundTint="#334155"
+                        android:text="Art ↩"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Song Info + Pocket Shake Button (Where Like Button Used To Be) -->
+        <LinearLayout
+            android:id="@+id/fpSongInfoSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/fpSeekSection"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingVertical="4dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/fpSongTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:focusable="true"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:singleLine="true"
+                    android:text="Song Title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/fpSongArtist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Singer Name"
+                    android:textColor="#CBD5E1"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Pocket Shake Button in place of old Like button -->
+            <Button
+                android:id="@+id/fpPocketShakeBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:backgroundTint="#1E293B"
+                android:text="📳 Shake: OFF"
+                android:textColor="#CBD5E1"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Waveform ("Lambe Dande") / Simple Line Seekbar Section -->
+        <LinearLayout
+            android:id="@+id/fpSeekSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/fpMainControlsRow"
+            android:orientation="vertical"
+            android:paddingVertical="4dp">
+
+            <com.hybridmusic.player.WaveformSeekBarView
+                android:id="@+id/fpWaveformSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="44dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/fpCurrentTime"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="00:00"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/fpTotalTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Main Playback Controls (Shuffle, Prev, Play/Pause Do Dande, Next, Repeat) -->
+        <LinearLayout
+            android:id="@+id/fpMainControlsRow"
+            android:layout_width="match_parent"
+            android:layout_height="62dp"
+            android:layout_above="@+id/fpBottomSwappableRow"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/fpShuffleBtn"
+                android:layout_width="54dp"
+                android:layout_height="44dp"
+                android:backgroundTint="#1E293B"
+                android:text="🔀"
+                android:textColor="#CBD5E1"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/fpPrevBtn"
+                android:layout_width="56dp"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="8dp"
+                android:backgroundTint="#1E293B"
+                android:text="⏮"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/fpPlayPauseBtn"
+                android:layout_width="74dp"
+                android:layout_height="56dp"
+                android:backgroundTint="#00E5FF"
+                android:text="▶"
+                android:textColor="#000000"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/fpNextBtn"
+                android:layout_width="56dp"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="8dp"
+                android:backgroundTint="#1E293B"
+                android:text="⏭"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/fpRepeatBtn"
+                android:layout_width="54dp"
+                android:layout_height="44dp"
+                android:backgroundTint="#1E293B"
+                android:text="🔁"
+                android:textColor="#00E5FF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Bottom 4 Swappable Controls Row (Timer, A-B, Equalizer, Speed) -->
+        <LinearLayout
+            android:id="@+id/fpBottomSwappableRow"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_alignParentBottom="true"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/fpSlot0Btn"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:backgroundTint="#161F30"
+                android:text="⏲ Timer"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/fpSlot1Btn"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:backgroundTint="#161F30"
+                android:text="🔁 A-B"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/fpSlot2Btn"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:backgroundTint="#161F30"
+                android:text="🎚 Equalizer"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/fpSlot3Btn"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:backgroundTint="#161F30"
+                android:text="⚡ Speed"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- RIGHT-TO-LEFT SLIDE PLAYING QUEUE OVERLAY (Tap Anywhere Outside to Dismiss) -->
+        <FrameLayout
+            android:id="@+id/queueBackdropOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#99000000"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/queueSlidePanel"
+                android:layout_width="305dp"
+                android:layout_height="560dp"
+                android:layout_gravity="end|center_vertical"
+                android:background="#161F30"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/queueHeaderTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Playing Queue (0/0)"
+                        android:textColor="#00E5FF"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/queueCloseCutBtn"
+                        android:layout_width="40dp"
+                        android:layout_height="36dp"
+                        android:backgroundTint="#EF4444"
+                        android:text="✕"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/queueRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+        </FrameLayout>
+    </RelativeLayout>
+</FrameLayout>
