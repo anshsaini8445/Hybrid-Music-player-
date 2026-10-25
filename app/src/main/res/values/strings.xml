@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hybrid Music Player</string>
+    <string name="default_star_badge">★</string>
+    <string name="tab_all_songs">All Songs</string>
+    <string name="tab_video_audio">Video Songs (Audio)</string>
+    <string name="tab_favorites">Favorites</string>
+    <string name="tab_playlists">Playlists</string>
+    <string name="tab_folders">Folders</string>
+    <string name="tab_artists">Artists</string>
+    <string name="nav_songs">Songs</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings (MI)</string>
+    <string name="pocket_shake_off">Pocket Shake: OFF</string>
+    <string name="pocket_shake_on">Pocket Shake: ON (2x Shake)</string>
+</resources>
