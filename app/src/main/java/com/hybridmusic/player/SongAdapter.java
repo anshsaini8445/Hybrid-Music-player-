@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -59,47 +60,55 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         ThemeManager.ThemePreset theme = themeManager.getCurrentTheme();
 
         boolean isCurrent = (song.id == activeSongId);
-        int primaryColor = isCurrent ? theme.accentPrimary : themeManager.getPrimaryTextColor();
-        int secondaryColor = themeManager.getSecondaryTextColor();
+
+        // Dark Rounded Card like Screenshot 1
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(theme.bgCard);
+        cardBg.setCornerRadius(32f);
+        if (isCurrent) {
+            cardBg.setStroke(2, theme.accentPrimary);
+        }
+        holder.cardContainer.setBackground(cardBg);
+
+        // Cyan Rounded Square Thumbnail like Screenshot 1
+        GradientDrawable thumbBg = new GradientDrawable();
+        thumbBg.setColor(theme.accentPrimary);
+        thumbBg.setCornerRadius(22f);
+        holder.artImage.setBackground(thumbBg);
+        holder.artImage.setClipToOutline(true);
+
+        // Circular Cyan-Bordered 3-Dot Button
+        GradientDrawable dotCircle = new GradientDrawable();
+        dotCircle.setShape(GradientDrawable.OVAL);
+        dotCircle.setColor(Color.parseColor("#162230"));
+        dotCircle.setStroke(2, theme.accentPrimary);
+        holder.threeDotBtn.setBackground(dotCircle);
+        holder.threeDotBtn.setTextColor(theme.accentPrimary);
 
         String prefix = isCompactQueueMode ? (position + 1) + ". " : "";
-        String badge = song.isVideoAudio ? " [VIDEO-AUDIO]" : "";
-        holder.titleText.setText(prefix + song.title + badge);
-        holder.artistText.setText(song.artist + " • " + song.getFormattedDuration() + " • " + song.getFormattedSize());
+        holder.titleText.setText(prefix + song.title);
+        holder.artistText.setText(song.artist + "  •  " + song.getFormattedDuration() + "  •  " + song.getFormattedSize());
 
-        holder.titleText.setTextColor(primaryColor);
-        holder.artistText.setTextColor(secondaryColor);
-        holder.threeDotBtn.setColorFilter(primaryColor);
+        holder.titleText.setTextColor(isCurrent ? theme.accentPrimary : themeManager.getPrimaryTextColor());
+        holder.artistText.setTextColor(themeManager.getSecondaryTextColor());
 
-        // Rounded glowing background for thumbnail
-        GradientDrawable thumbBg = new GradientDrawable();
-        thumbBg.setColor(theme.bgCard);
-        thumbBg.setCornerRadius(18f);
-        thumbBg.setStroke(2, theme.accentPrimary);
-        holder.artImage.setBackground(thumbBg);
-
-        // Check custom saved photo for song first, then album art
+        // Load real song photo or custom gallery photo if available
         String customPhoto = themeManager.getSongCustomPhoto(song.id);
-        boolean photoLoaded = false;
+        boolean loaded = false;
         try {
             if (customPhoto != null && !customPhoto.isEmpty()) {
                 holder.artImage.setImageURI(Uri.parse(customPhoto));
-                photoLoaded = (holder.artImage.getDrawable() != null);
+                loaded = (holder.artImage.getDrawable() != null);
             }
-            if (!photoLoaded && !song.isVideoAudio) {
+            if (!loaded && !song.isVideoAudio) {
                 holder.artImage.setImageURI(song.getAlbumArtUri());
-                photoLoaded = (holder.artImage.getDrawable() != null);
+                loaded = (holder.artImage.getDrawable() != null);
             }
         } catch (Exception ignored) {
         }
 
-        if (!photoLoaded) {
-            holder.artImage.setImageResource(song.isVideoAudio
-                    ? android.R.drawable.ic_media_ff
-                    : android.R.drawable.ic_media_play);
-            holder.artImage.setColorFilter(theme.accentPrimary);
-        } else {
-            holder.artImage.clearColorFilter();
+        if (!loaded) {
+            holder.artImage.setImageDrawable(null);
         }
 
         holder.threeDotBtn.setVisibility(isCompactQueueMode ? View.GONE : View.VISIBLE);
@@ -113,15 +122,14 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         });
     }
 
-    // Double-Confirmation Permanent Phone Storage Delete
     public static void showPermanentDeleteDialog(Context context, SongItem song, Runnable onDeleteSuccess) {
         new AlertDialog.Builder(context)
-                .setTitle("⚠️ Delete Song (Step 1 of 2)")
-                .setMessage("Kya aap '" + song.title + "' ko delete karna chahte hain?")
-                .setPositiveButton("OK (Next)", (d1, w1) -> {
+                .setTitle("Delete Song Permanently (1/2)")
+                .setMessage("Kya aap '" + song.title + "' ko phone se delete karna chahte hain?")
+                .setPositiveButton("OK (Continue)", (d1, w1) -> {
                     new AlertDialog.Builder(context)
-                            .setTitle("🚨 FINAL WARNING (Step 2 of 2)")
-                            .setMessage("Dobara Confirm Karein: OK dabane par '" + song.title + "' aapke poore phone se hamesha ke liye delete ho jayega!")
+                            .setTitle("Final Confirmation (2/2)")
+                            .setMessage("Pakka delete karein? OK dabane par '" + song.title + "' poore phone se hamesha ke liye hat jayega!")
                             .setPositiveButton("OK, Delete Forever", (d2, w2) -> {
                                 boolean deleted = false;
                                 try {
@@ -129,20 +137,19 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
                                             ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI
                                             : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
                                     Uri itemUri = ContentUris.withAppendedId(baseUri, song.id);
-                                    int rows = context.getContentResolver().delete(itemUri, null, null);
-                                    if (rows > 0) deleted = true;
-                                } catch (Exception ignored) {
-                                }
-                                try {
-                                    File f = new File(song.path);
-                                    if (f.exists() && f.delete()) {
+                                    if (context.getContentResolver().delete(itemUri, null, null) > 0) {
                                         deleted = true;
                                     }
                                 } catch (Exception ignored) {
                                 }
+                                try {
+                                    File f = new File(song.path);
+                                    if (f.exists() && f.delete()) deleted = true;
+                                } catch (Exception ignored) {
+                                }
                                 Toast.makeText(context, deleted
-                                        ? "Song poore phone se permanently delete ho gaya!"
-                                        : "File delete request sent!", Toast.LENGTH_SHORT).show();
+                                        ? "Song poore phone se delete ho gaya!"
+                                        : "Delete request completed!", Toast.LENGTH_SHORT).show();
                                 if (onDeleteSuccess != null) onDeleteSuccess.run();
                             })
                             .setNegativeButton("Cancel", null)
@@ -158,12 +165,13 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     }
 
     public static class SongViewHolder extends RecyclerView.ViewHolder {
+        LinearLayout cardContainer;
         ImageView artImage;
-        TextView titleText, artistText;
-        ImageView threeDotBtn;
+        TextView titleText, artistText, threeDotBtn;
 
         public SongViewHolder(@NonNull View itemView) {
             super(itemView);
+            cardContainer = itemView.findViewById(R.id.songCardContainer);
             artImage = itemView.findViewById(R.id.songThumbnail);
             titleText = itemView.findViewById(R.id.songTitle);
             artistText = itemView.findViewById(R.id.songArtist);
