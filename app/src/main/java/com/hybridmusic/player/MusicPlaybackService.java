@@ -6,11 +6,13 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
 import android.media.audiofx.BassBoost;
 import android.media.audiofx.Equalizer;
+import android.media.audiofx.LoudnessEnhancer;
 import android.media.audiofx.PresetReverb;
 import android.os.Binder;
 import android.os.Build;
@@ -42,16 +44,17 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private Equalizer equalizer;
     private BassBoost bassBoost;
     private PresetReverb presetReverb;
+    private LoudnessEnhancer loudnessEnhancer;
 
     private List<SongItem> queueList = new ArrayList<>();
     private int currentIndex = 0;
     private boolean isShuffle = false;
     private int repeatMode = 0; // 0 = Loop All, 1 = Repeat One, 2 = Off
 
-    // Real Speed, Pitch & Reverb Controls for Sound & Pitch Lab (Lofi / Slowed + Reverb)
     private float userSpeed = 1.0f;
     private float userPitch = 1.0f;
-    private int reverbPresetIndex = 0; // 0=None, 1=SmallRoom, 2=MediumHall, 3=LargeHall(Slowed+Reverb), 4=Plate
+    private int reverbPresetIndex = 0;
+    private int extraBoostPercent = 0; // 0 to 100 (for 100% -> 200% 4-Dot Volume Boost)
     private boolean djSlowFadeEnabled = true;
 
     private int pointAMs = -1;
@@ -116,12 +119,15 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             } else if (ACTION_PREV.equals(action)) {
                 playPrevious();
             } else if (ACTION_CLOSE.equals(action)) {
-                if (mediaPlayer != null && isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if (mediaPlayer != null && isPlaying()) {
+                        mediaPlayer.pause();
+                    }
+                    stopForeground(true);
+                    NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                    if (nm != null) nm.cancel(NOTIFICATION_ID);
+                } catch (Exception ignored) {
                 }
-                stopForeground(true);
-                NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                if (nm != null) nm.cancel(NOTIFICATION_ID);
                 notifyUI();
             }
         }
@@ -180,6 +186,32 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             applyReverbPreset(reverbPresetIndex);
         } catch (Exception ignored) {
         }
+        try {
+            if (loudnessEnhancer != null) loudnessEnhancer.release();
+            loudnessEnhancer = new LoudnessEnhancer(sessionId);
+            setExtraVolumeBoost(extraBoostPercent);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public void setExtraVolumeBoost(int boostOver100) {
+        this.extraBoostPercent = Math.max(0, Math.min(100, boostOver100));
+        if (loudnessEnhancer != null) {
+            try {
+                if (this.extraBoostPercent > 0) {
+                    loudnessEnhancer.setTargetGain(this.extraBoostPercent * 25); // Up to 2500mB boost
+                    loudnessEnhancer.setEnabled(true);
+                } else {
+                    loudnessEnhancer.setTargetGain(0);
+                    loudnessEnhancer.setEnabled(false);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    public int getExtraVolumeBoost() {
+        return extraBoostPercent;
     }
 
     public void setEqualizerBand(int bandIdx, int percent) {
@@ -240,10 +272,6 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         }
     }
 
-    public int getReverbPresetIndex() {
-        return reverbPresetIndex;
-    }
-
     public void setQueue(List<SongItem> songs, int startIndex) {
         if (songs == null || songs.isEmpty()) return;
         this.queueList = new ArrayList<>(songs);
@@ -277,7 +305,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             });
             mediaPlayer.prepareAsync();
         } catch (Exception e) {
-            playNext();
+            notifyUI();
         }
     }
 
@@ -286,11 +314,14 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             if (isPlaying()) {
                 pausePlaybackAndClearOngoing();
             } else {
-                mediaPlayer.start();
-                applySpeedAndPitch(userSpeed, userPitch);
-                SongItem song = getCurrentSong();
-                if (song != null) showNotification(song, true);
-                notifyUI();
+                try {
+                    mediaPlayer.start();
+                    applySpeedAndPitch(userSpeed, userPitch);
+                    SongItem song = getCurrentSong();
+                    if (song != null) showNotification(song, true);
+                    notifyUI();
+                } catch (Exception ignored) {
+                }
             }
         } else if (!queueList.isEmpty()) {
             playCurrentSong();
@@ -298,13 +329,16 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     }
 
     private void pausePlaybackAndClearOngoing() {
-        if (mediaPlayer != null && isPlaying()) {
-            mediaPlayer.pause();
-        }
-        stopForeground(false);
-        SongItem song = getCurrentSong();
-        if (song != null) {
-            showNotification(song, false);
+        try {
+            if (mediaPlayer != null && isPlaying()) {
+                mediaPlayer.pause();
+            }
+            stopForeground(false);
+            SongItem song = getCurrentSong();
+            if (song != null) {
+                showNotification(song, false);
+            }
+        } catch (Exception ignored) {
         }
         notifyUI();
     }
@@ -528,31 +562,38 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     }
 
     private void showNotification(SongItem song, boolean playing) {
-        Intent openIntent = new Intent(this, MainActivity.class);
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        try {
+            Intent openIntent = new Intent(this, MainActivity.class);
+            PendingIntent contentIntent = PendingIntent.getActivity(this, 0, openIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(playing ? android.R.drawable.ic_media_play : android.R.drawable.ic_media_pause)
-                .setContentTitle(song.title)
-                .setContentText(song.artist)
-                .setSubText("Hybrid Music Player")
-                .setContentIntent(contentIntent)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setOngoing(playing)
-                .setSilent(true)
-                .addAction(android.R.drawable.ic_media_previous, "Prev", getActionIntent(ACTION_PREV, 1))
-                .addAction(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
-                        playing ? "Pause" : "Play", getActionIntent(ACTION_PLAY_PAUSE, 2))
-                .addAction(android.R.drawable.ic_media_next, "Next", getActionIntent(ACTION_NEXT, 3))
-                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Close ✕", getActionIntent(ACTION_CLOSE, 4));
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(playing ? android.R.drawable.ic_media_play : android.R.drawable.ic_media_pause)
+                    .setContentTitle(song.title)
+                    .setContentText(song.artist)
+                    .setSubText("Hybrid Music Player")
+                    .setContentIntent(contentIntent)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setOngoing(playing)
+                    .setSilent(true)
+                    .addAction(android.R.drawable.ic_media_previous, "Prev", getActionIntent(ACTION_PREV, 1))
+                    .addAction(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
+                            playing ? "Pause" : "Play", getActionIntent(ACTION_PLAY_PAUSE, 2))
+                    .addAction(android.R.drawable.ic_media_next, "Next", getActionIntent(ACTION_NEXT, 3))
+                    .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Close", getActionIntent(ACTION_CLOSE, 4));
 
-        Notification notification = builder.build();
-        if (playing) {
-            startForeground(NOTIFICATION_ID, notification);
-        } else {
-            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            if (nm != null) nm.notify(NOTIFICATION_ID, notification);
+            Notification notification = builder.build();
+            if (playing) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+                } else {
+                    startForeground(NOTIFICATION_ID, notification);
+                }
+            } else {
+                NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                if (nm != null) nm.notify(NOTIFICATION_ID, notification);
+            }
+        } catch (Exception ignored) {
         }
     }
 
@@ -562,11 +603,15 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         if (equalizer != null) equalizer.release();
         if (bassBoost != null) bassBoost.release();
         if (presetReverb != null) presetReverb.release();
+        if (loudnessEnhancer != null) loudnessEnhancer.release();
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
         }
-        stopForeground(true);
+        try {
+            stopForeground(true);
+        } catch (Exception ignored) {
+        }
         super.onDestroy();
     }
 }
