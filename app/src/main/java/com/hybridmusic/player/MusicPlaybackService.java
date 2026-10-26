@@ -8,8 +8,10 @@ import android.app.Service;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.media.PlaybackParams;
 import android.media.audiofx.BassBoost;
 import android.media.audiofx.Equalizer;
+import android.media.audiofx.PresetReverb;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
@@ -39,19 +41,21 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private MediaPlayer mediaPlayer;
     private Equalizer equalizer;
     private BassBoost bassBoost;
+    private PresetReverb presetReverb;
 
     private List<SongItem> queueList = new ArrayList<>();
     private int currentIndex = 0;
     private boolean isShuffle = false;
     private int repeatMode = 0; // 0 = Loop All, 1 = Repeat One, 2 = Off
+
+    // Real Speed, Pitch & Reverb Controls for Sound & Pitch Lab (Lofi / Slowed + Reverb)
     private float userSpeed = 1.0f;
+    private float userPitch = 1.0f;
+    private int reverbPresetIndex = 0; // 0=None, 1=SmallRoom, 2=MediumHall, 3=LargeHall(Slowed+Reverb), 4=Plate
     private boolean djSlowFadeEnabled = true;
 
-    // A-B Repeat positions in ms (-1 means inactive)
     private int pointAMs = -1;
     private int pointBMs = -1;
-
-    // Sleep Timer
     private long sleepTimerEndMs = 0;
 
     private final int[] bandLevels = new int[]{50, 50, 50, 50, 50};
@@ -71,23 +75,20 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                 int pos = getCurrentPosition();
                 int dur = getDuration();
 
-                // 1. A-B Repeat check
                 if (pointAMs >= 0 && pointBMs > pointAMs && pos >= pointBMs) {
                     seekTo(pointAMs);
                 }
 
-                // 2. 10-Second DJ Slow Fade & Speed-Down at end of song
                 if (djSlowFadeEnabled && dur > 15000 && pos >= dur - 10000) {
                     float remainingSec = Math.max(0.1f, (dur - pos) / 1000f);
                     float factor = Math.max(0.35f, Math.min(1.0f, remainingSec / 10.0f));
                     mediaPlayer.setVolume(factor, factor);
-                    applyInternalSpeed(Math.max(0.75f, userSpeed * (0.75f + 0.25f * factor)));
+                    applySpeedAndPitch(Math.max(0.75f, userSpeed * (0.75f + 0.25f * factor)), userPitch);
                 } else {
                     mediaPlayer.setVolume(1.0f, 1.0f);
-                    applyInternalSpeed(userSpeed);
+                    applySpeedAndPitch(userSpeed, userPitch);
                 }
 
-                // 3. Sleep Timer check
                 if (sleepTimerEndMs > 0 && System.currentTimeMillis() >= sleepTimerEndMs) {
                     sleepTimerEndMs = 0;
                     pausePlaybackAndClearOngoing();
@@ -115,7 +116,6 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             } else if (ACTION_PREV.equals(action)) {
                 playPrevious();
             } else if (ACTION_CLOSE.equals(action)) {
-                // One-tap instant notification close!
                 if (mediaPlayer != null && isPlaying()) {
                     mediaPlayer.pause();
                 }
@@ -174,6 +174,12 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             setBassBoostStrength(bassStrength);
         } catch (Exception ignored) {
         }
+        try {
+            if (presetReverb != null) presetReverb.release();
+            presetReverb = new PresetReverb(0, sessionId);
+            applyReverbPreset(reverbPresetIndex);
+        } catch (Exception ignored) {
+        }
     }
 
     public void setEqualizerBand(int bandIdx, int percent) {
@@ -213,6 +219,31 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         return bassStrength;
     }
 
+    public void applyReverbPreset(int index) {
+        this.reverbPresetIndex = index;
+        if (presetReverb != null) {
+            try {
+                if (index <= 0) {
+                    presetReverb.setPreset(PresetReverb.PRESET_NONE);
+                    presetReverb.setEnabled(false);
+                } else {
+                    presetReverb.setEnabled(true);
+                    short p = PresetReverb.PRESET_MEDIUMHALL;
+                    if (index == 1) p = PresetReverb.PRESET_SMALLROOM;
+                    else if (index == 2) p = PresetReverb.PRESET_MEDIUMHALL;
+                    else if (index == 3) p = PresetReverb.PRESET_LARGEHALL;
+                    else if (index == 4) p = PresetReverb.PRESET_PLATE;
+                    presetReverb.setPreset(p);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    public int getReverbPresetIndex() {
+        return reverbPresetIndex;
+    }
+
     public void setQueue(List<SongItem> songs, int startIndex) {
         if (songs == null || songs.isEmpty()) return;
         this.queueList = new ArrayList<>(songs);
@@ -240,7 +271,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                 setupAudioEffects(mp.getAudioSessionId());
                 mp.setVolume(1.0f, 1.0f);
                 mp.start();
-                applyInternalSpeed(userSpeed);
+                applySpeedAndPitch(userSpeed, userPitch);
                 showNotification(song, true);
                 notifyUI();
             });
@@ -256,7 +287,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                 pausePlaybackAndClearOngoing();
             } else {
                 mediaPlayer.start();
-                applyInternalSpeed(userSpeed);
+                applySpeedAndPitch(userSpeed, userPitch);
                 SongItem song = getCurrentSong();
                 if (song != null) showNotification(song, true);
                 notifyUI();
@@ -270,7 +301,6 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         if (mediaPlayer != null && isPlaying()) {
             mediaPlayer.pause();
         }
-        // Detach ongoing foreground lock so user can swipe away notification in 1 tap!
         stopForeground(false);
         SongItem song = getCurrentSong();
         if (song != null) {
@@ -337,18 +367,45 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     public void setPlaybackSpeed(float speed) {
         this.userSpeed = Math.max(0.5f, Math.min(2.5f, speed));
         if (isPlaying()) {
-            applyInternalSpeed(this.userSpeed);
+            applySpeedAndPitch(this.userSpeed, this.userPitch);
         }
+        notifyUI();
     }
 
     public float getPlaybackSpeed() {
         return userSpeed;
     }
 
-    private void applyInternalSpeed(float speed) {
+    public void setPlaybackPitch(float pitch) {
+        this.userPitch = Math.max(0.5f, Math.min(2.0f, pitch));
+        if (isPlaying()) {
+            applySpeedAndPitch(this.userSpeed, this.userPitch);
+        }
+        notifyUI();
+    }
+
+    public float getPlaybackPitch() {
+        return userPitch;
+    }
+
+    public void applyLofiSlowedReverbPreset(float speed, float pitch, int reverbIdx, int bass) {
+        this.userSpeed = speed;
+        this.userPitch = pitch;
+        applyReverbPreset(reverbIdx);
+        setBassBoostStrength(bass);
+        if (isPlaying()) {
+            applySpeedAndPitch(speed, pitch);
+        }
+        notifyUI();
+    }
+
+    private void applySpeedAndPitch(float speed, float pitch) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mediaPlayer != null && isPlaying()) {
             try {
-                mediaPlayer.setPlaybackParams(mediaPlayer.getPlaybackParams().setSpeed(speed));
+                PlaybackParams params = mediaPlayer.getPlaybackParams();
+                params.setSpeed(speed);
+                params.setPitch(pitch);
+                mediaPlayer.setPlaybackParams(params);
             } catch (Exception ignored) {
             }
         }
@@ -358,7 +415,6 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         this.djSlowFadeEnabled = enabled;
     }
 
-    // A-B Repeat Controls
     public String cycleABRepeat() {
         int pos = getCurrentPosition();
         if (pointAMs < 0) {
@@ -368,14 +424,14 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         } else if (pointBMs < 0) {
             if (pos > pointAMs + 1000) {
                 pointBMs = pos;
-                return "A-B Loop ON";
+                return "A-B ON";
             } else {
                 pointAMs = -1;
-                return "A-B Off";
+                return "A-B";
             }
         } else {
             clearABRepeat();
-            return "A-B Off";
+            return "A-B";
         }
     }
 
@@ -392,13 +448,13 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         return pointBMs >= 0 ? (float) pointBMs / getDuration() : -1f;
     }
 
-    // Sleep Timer Controls
     public void setSleepTimerMinutes(int minutes) {
         if (minutes <= 0) {
             sleepTimerEndMs = 0;
         } else {
             sleepTimerEndMs = System.currentTimeMillis() + (minutes * 60L * 1000L);
         }
+        notifyUI();
     }
 
     public int getRemainingSleepMinutes() {
@@ -505,6 +561,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         handler.removeCallbacks(monitorRunnable);
         if (equalizer != null) equalizer.release();
         if (bassBoost != null) bassBoost.release();
+        if (presetReverb != null) presetReverb.release();
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
