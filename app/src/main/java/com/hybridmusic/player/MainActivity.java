@@ -1,6 +1,7 @@
 package com.hybridmusic.player;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -10,6 +11,9 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -23,6 +27,8 @@ import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -64,24 +70,27 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mainRecyclerView;
     private SongAdapter mainAdapter;
 
-    private int currentTopTab = 0; // 0=All, 1=VideoAudio, 2=Fav, 3=Playlists, 4=Folders, 5=Artists
+    private int currentTopTab = 0; // 0=Songs, 1=Folders, 2=Albums, 3=Artists, 4=VideoAudio, 5=Favorites
     private int currentBottomTab = 0; // 0=Songs, 1=Search, 2=Settings(MI)
     private long songIdForPhotoPick = -1;
 
-    // UI References
-    private View rootLayout, topHeaderBar, categoryTabsScroll, miniPlayerBar, bottomNavBar, fullPlayerOverlay;
+    // Main Library Views (Screenshot 1)
+    private View rootLayout, topHeaderBar, subShuffleHeaderRow, categoryTabsScroll, miniPlayerBar, bottomNavBar, fullPlayerOverlay;
     private ImageView customThemeBgImage, miniThumbnail;
-    private TextView appTitleText, miniTitle, miniArtist;
-    private Button miniPlayPauseBtn;
+    private TextView appTitleText, playShuffleAllBtn, totalSongsCountText, topSortMenuBtn;
+    private TextView miniTitle, miniArtist, miniPlayPauseBtn, miniNextBtn;
+    private final TextView[] topTabPills = new TextView[6];
     private DancingPuppyView headerPuppyView, fpPuppyView;
 
-    // Full Player UI References
+    // Full Player Views (Screenshot 2)
     private AlbumArtDiscView fpAlbumArtDiscView;
     private View fpLyricsContainer, queueBackdropOverlay, queueSlidePanel;
-    private TextView fpLyricsText, fpSongTitle, fpSongArtist, fpCurrentTime, fpTotalTime, fpHeaderStatus, queueHeaderTitle;
+    private TextView fpCloseBtn, fpShareBtn, fpLyricsText, fpSongTitle, fpSongArtist, fpCurrentTime, fpTotalTime;
     private WaveformSeekBarView fpWaveformSeekBar;
-    private Button fpPlayPauseBtn, fpShuffleBtn, fpRepeatBtn, fpPocketShakeBtn, fpQueueBtn, fpLyricsFavBtn;
-    private final Button[] bottomSlotBtns = new Button[4];
+    private TextView fpPlayPauseBtn, fpPrevBtn, fpNextBtn, fpShuffleBtn, fpRepeatBtn;
+    private TextView fpPocketShakeBtn, fpQueueBtn, fpThreeDotBtn, queueHeaderTitle, queueCloseCutBtn;
+    private Button fpLyricsFavBtn;
+    private final TextView[] bottomSlotBtns = new TextView[4];
     private RecyclerView queueRecyclerView;
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
@@ -93,13 +102,19 @@ public class MainActivity extends AppCompatActivity {
             if (musicService != null && isBound) {
                 int pos = musicService.getCurrentPosition();
                 int dur = musicService.getDuration();
+                boolean playing = musicService.isPlaying();
+
                 fpWaveformSeekBar.setProgressFraction((float) pos / Math.max(1, dur));
                 fpWaveformSeekBar.setABMarkers(musicService.getFractionA(), musicService.getFractionB());
-                fpWaveformSeekBar.setPlaying(musicService.isPlaying());
+                fpWaveformSeekBar.setPlaying(playing);
+                headerPuppyView.setPlayingState(playing);
+                fpPuppyView.setPlayingState(playing);
+                fpAlbumArtDiscView.setPlaying(playing);
+
                 fpCurrentTime.setText(formatMs(pos));
                 fpTotalTime.setText(formatMs(dur));
             }
-            uiHandler.postDelayed(this, 500);
+            uiHandler.postDelayed(this, 450);
         }
     };
 
@@ -126,11 +141,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         bindViews();
-        // Pocket Shake is STRICTLY OFF by default when app opens
+
+        // Pocket Shake Default OFF when app opens
         pocketShakeManager = new PocketShakeManager(this, () -> {
             if (musicService != null) {
                 musicService.playNext();
-                Toast.makeText(this, "📳 Double-Shake: Playing Next Song!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "📳 Double-Shake: Next Song Played!", Toast.LENGTH_SHORT).show();
             }
         });
         pocketShakeManager.setEnabled(false);
@@ -149,19 +165,34 @@ public class MainActivity extends AppCompatActivity {
         rootLayout = findViewById(R.id.rootLayout);
         customThemeBgImage = findViewById(R.id.customThemeBgImage);
         topHeaderBar = findViewById(R.id.topHeaderBar);
+        subShuffleHeaderRow = findViewById(R.id.subShuffleHeaderRow);
         categoryTabsScroll = findViewById(R.id.categoryTabsScroll);
         miniPlayerBar = findViewById(R.id.miniPlayerBar);
         bottomNavBar = findViewById(R.id.bottomNavBar);
         fullPlayerOverlay = findViewById(R.id.fullPlayerOverlay);
 
+        topTabPills[0] = findViewById(R.id.tabAllSongs);
+        topTabPills[1] = findViewById(R.id.tabFolders);
+        topTabPills[2] = findViewById(R.id.tabPlaylists);
+        topTabPills[3] = findViewById(R.id.tabArtists);
+        topTabPills[4] = findViewById(R.id.tabVideoAudio);
+        topTabPills[5] = findViewById(R.id.tabFavorites);
+
+        topSortMenuBtn = findViewById(R.id.topSortMenuBtn);
+        playShuffleAllBtn = findViewById(R.id.playShuffleAllBtn);
+        totalSongsCountText = findViewById(R.id.totalSongsCountText);
         appTitleText = findViewById(R.id.appTitleText);
         headerPuppyView = findViewById(R.id.headerPuppyView);
+
         miniThumbnail = findViewById(R.id.miniThumbnail);
         miniTitle = findViewById(R.id.miniTitle);
         miniTitle.setSelected(true);
         miniArtist = findViewById(R.id.miniArtist);
         miniPlayPauseBtn = findViewById(R.id.miniPlayPauseBtn);
+        miniNextBtn = findViewById(R.id.miniNextBtn);
 
+        fpCloseBtn = findViewById(R.id.fpCloseBtn);
+        fpShareBtn = findViewById(R.id.fpShareBtn);
         fpPuppyView = findViewById(R.id.fpPuppyView);
         fpAlbumArtDiscView = findViewById(R.id.fpAlbumArtDiscView);
         fpLyricsContainer = findViewById(R.id.fpLyricsContainer);
@@ -172,13 +203,16 @@ public class MainActivity extends AppCompatActivity {
         fpSongArtist = findViewById(R.id.fpSongArtist);
         fpCurrentTime = findViewById(R.id.fpCurrentTime);
         fpTotalTime = findViewById(R.id.fpTotalTime);
-        fpHeaderStatus = findViewById(R.id.fpHeaderStatus);
         fpWaveformSeekBar = findViewById(R.id.fpWaveformSeekBar);
+
         fpPlayPauseBtn = findViewById(R.id.fpPlayPauseBtn);
+        fpPrevBtn = findViewById(R.id.fpPrevBtn);
+        fpNextBtn = findViewById(R.id.fpNextBtn);
         fpShuffleBtn = findViewById(R.id.fpShuffleBtn);
         fpRepeatBtn = findViewById(R.id.fpRepeatBtn);
         fpPocketShakeBtn = findViewById(R.id.fpPocketShakeBtn);
         fpQueueBtn = findViewById(R.id.fpQueueBtn);
+        fpThreeDotBtn = findViewById(R.id.fpThreeDotBtn);
 
         bottomSlotBtns[0] = findViewById(R.id.fpSlot0Btn);
         bottomSlotBtns[1] = findViewById(R.id.fpSlot1Btn);
@@ -188,6 +222,7 @@ public class MainActivity extends AppCompatActivity {
         queueBackdropOverlay = findViewById(R.id.queueBackdropOverlay);
         queueSlidePanel = findViewById(R.id.queueSlidePanel);
         queueHeaderTitle = findViewById(R.id.queueHeaderTitle);
+        queueCloseCutBtn = findViewById(R.id.queueCloseCutBtn);
         queueRecyclerView = findViewById(R.id.queueRecyclerView);
         queueRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -196,20 +231,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupInteractions() {
-        // Customizable App Name & Star Badge on tap
+        for (int i = 0; i < 6; i++) {
+            final int tabIdx = i;
+            topTabPills[i].setOnClickListener(v -> selectTopCategoryTab(tabIdx));
+        }
+
+        topSortMenuBtn.setOnClickListener(v -> showSortMenuDialog());
         appTitleText.setOnClickListener(v -> showCustomizeHeaderDialog());
-        findViewById(R.id.topSortMenuBtn).setOnClickListener(v -> showSortMenuDialog());
         findViewById(R.id.profileThemeButton).setOnClickListener(v -> showThemePickerDialog());
 
-        // Top Category Tabs
-        findViewById(R.id.tabAllSongs).setOnClickListener(v -> selectTopCategoryTab(0));
-        findViewById(R.id.tabVideoAudio).setOnClickListener(v -> selectTopCategoryTab(1));
-        findViewById(R.id.tabFavorites).setOnClickListener(v -> selectTopCategoryTab(2));
-        findViewById(R.id.tabPlaylists).setOnClickListener(v -> selectTopCategoryTab(3));
-        findViewById(R.id.tabFolders).setOnClickListener(v -> selectTopCategoryTab(4));
-        findViewById(R.id.tabArtists).setOnClickListener(v -> selectTopCategoryTab(5));
+        // Play / Shuffle All Pill Button (Screenshot 1)
+        playShuffleAllBtn.setOnClickListener(v -> {
+            if (musicService != null && !displayedSongs.isEmpty()) {
+                musicService.setShuffle(true);
+                int rand = (int) (Math.random() * displayedSongs.size());
+                musicService.setQueue(displayedSongs, rand);
+                openFullPlayer();
+            }
+        });
 
-        // Horizontal Swipe Gesture on Song List (Songs -> VideoAudio -> Fav -> Playlists -> Folders -> Artists -> Search -> Settings)
+        // Horizontal Swipe Gesture across tabs (Songs -> Folders -> Albums -> Artists -> VideoAudio -> Fav -> Search -> Settings)
         tabSwipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
@@ -218,15 +259,13 @@ public class MainActivity extends AppCompatActivity {
                 float dy = e2.getY() - e1.getY();
                 if (Math.abs(dx) > Math.abs(dy) * 1.6f && Math.abs(dx) > 130) {
                     if (dx < 0) {
-                        // Swipe Right-to-Left
                         if (currentBottomTab == 0) {
                             if (currentTopTab < 5) selectTopCategoryTab(currentTopTab + 1);
-                            else showBottomSection(1); // After last folder/artist tab -> jump to Search!
+                            else showBottomSection(1);
                         } else if (currentBottomTab == 1) {
-                            showBottomSection(2); // From Search -> jump to Settings (MI)!
+                            showBottomSection(2);
                         }
                     } else {
-                        // Swipe Left-to-Right
                         if (currentBottomTab == 2) showBottomSection(1);
                         else if (currentBottomTab == 1) showBottomSection(0);
                         else if (currentTopTab > 0) selectTopCategoryTab(currentTopTab - 1);
@@ -242,30 +281,33 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        // Bottom Navigation
         findViewById(R.id.navSongsBtn).setOnClickListener(v -> showBottomSection(0));
         findViewById(R.id.navSearchBtn).setOnClickListener(v -> showBottomSection(1));
         findViewById(R.id.navSettingsBtn).setOnClickListener(v -> showBottomSection(2));
 
-        // Mini Player Bar
         miniPlayerBar.setOnClickListener(v -> openFullPlayer());
         miniPlayPauseBtn.setOnClickListener(v -> {
             if (musicService != null) musicService.playToggle();
         });
-        findViewById(R.id.miniNextBtn).setOnClickListener(v -> {
+        miniNextBtn.setOnClickListener(v -> {
             if (musicService != null) musicService.playNext();
         });
 
-        // Full Player Controls
-        findViewById(R.id.fpCloseBtn).setOnClickListener(v -> fullPlayerOverlay.setVisibility(View.GONE));
-        findViewById(R.id.fpThreeDotBtn).setOnClickListener(v -> showFullPlayerThreeDotMenu());
+        // Full Player Top Row (Screenshot 2)
+        fpCloseBtn.setOnClickListener(v -> fullPlayerOverlay.setVisibility(View.GONE));
+        fpShareBtn.setOnClickListener(v -> shareCurrentSong());
+
+        // Screenshot 3 Exact 3-Dot Popup Menu
+        fpThreeDotBtn.setOnClickListener(v -> {
+            SongItem cur = musicService != null ? musicService.getCurrentSong() : null;
+            showScreenshot3AudioOptionsDialog(cur);
+        });
+
         fpQueueBtn.setOnClickListener(v -> openRightSlideQueue());
-
-        // Tap anywhere outside the Queue Panel to close Playing Queue immediately
         queueBackdropOverlay.setOnClickListener(v -> closeRightSlideQueue());
-        findViewById(R.id.queueCloseCutBtn).setOnClickListener(v -> closeRightSlideQueue());
+        queueCloseCutBtn.setOnClickListener(v -> closeRightSlideQueue());
 
-        // Square Art / Vinyl Disc Gesture: Swipe Right-to-Left opens Lyrics automatically
+        // Square Art / Rotating Disc Gestures
         fpAlbumArtDiscView.setOnArtGestureListener(new AlbumArtDiscView.OnArtGestureListener() {
             @Override
             public void onSwipeRightToLeft() {
@@ -285,25 +327,23 @@ public class MainActivity extends AppCompatActivity {
             fpLyricsContainer.setVisibility(View.GONE);
             fpAlbumArtDiscView.setLyricsPageSelected(false);
         });
-
         findViewById(R.id.fpFindLyricsOnlineBtn).setOnClickListener(v -> fetchOnlineLyricsForCurrentSong());
 
         fpLyricsFavBtn.setOnClickListener(v -> {
             if (musicService != null && musicService.getCurrentSong() != null) {
                 SongItem cur = musicService.getCurrentSong();
                 boolean fav = themeManager.toggleFavorite(cur.id);
-                fpLyricsFavBtn.setText(fav ? "❤️ Favorited" : "♡ Add Favorite");
+                fpLyricsFavBtn.setText(fav ? "❤️ Favorited" : "♡ Favorite");
                 Toast.makeText(this, fav ? "Added to Favorites ❤️" : "Removed from Favorites", Toast.LENGTH_SHORT).show();
             }
         });
 
-        // Pocket Shake toggle button (located where Like button used to be)
         fpPocketShakeBtn.setOnClickListener(v -> {
             boolean nextState = !pocketShakeManager.isEnabled();
             pocketShakeManager.setEnabled(nextState);
             updatePocketShakeButtonUI();
             Toast.makeText(this, nextState
-                    ? "Pocket Shake ON (Do baar haath se hilane par Next Song chalega)"
+                    ? "Pocket Shake ON (2x Hand Shake for Next Song)"
                     : "Pocket Shake OFF", Toast.LENGTH_SHORT).show();
         });
 
@@ -317,10 +357,10 @@ public class MainActivity extends AppCompatActivity {
         fpPlayPauseBtn.setOnClickListener(v -> {
             if (musicService != null) musicService.playToggle();
         });
-        findViewById(R.id.fpPrevBtn).setOnClickListener(v -> {
+        fpPrevBtn.setOnClickListener(v -> {
             if (musicService != null) musicService.playPrevious();
         });
-        findViewById(R.id.fpNextBtn).setOnClickListener(v -> {
+        fpNextBtn.setOnClickListener(v -> {
             if (musicService != null) musicService.playNext();
         });
 
@@ -329,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
                 boolean next = !musicService.isShuffle();
                 musicService.setShuffle(next);
                 syncPlayerUI();
-                Toast.makeText(this, next ? "Shuffle: ON 🔀" : "Shuffle: OFF", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, next ? "Shuffle ON" : "Shuffle OFF", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -338,12 +378,176 @@ public class MainActivity extends AppCompatActivity {
                 int nextMode = (musicService.getRepeatMode() + 1) % 3;
                 musicService.setRepeatMode(nextMode);
                 syncPlayerUI();
-                String[] labels = {"Loop All Songs 🔁", "Repeat Current Song 🔂", "Repeat OFF ➡️"};
+                String[] labels = {"Loop All Songs", "Repeat Current Song", "Repeat OFF"};
                 Toast.makeText(this, labels[nextMode], Toast.LENGTH_SHORT).show();
             }
         });
 
         refreshBottomSwappableButtons();
+    }
+
+    // SCREENSHOT 3 (1000067471.jpg) 100% EXACT CYAN-BORDERED POPUP MENU
+    private void showScreenshot3AudioOptionsDialog(final SongItem targetSong) {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(36, 32, 36, 28);
+
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(Color.parseColor("#0D131A"));
+        cardBg.setCornerRadius(42f);
+        cardBg.setStroke(3, themeManager.getCurrentTheme().accentPrimary);
+        card.setBackground(cardBg);
+
+        // Top Row: "Audio Player Options" in Cyan + Circular Close "✕" Button
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+        headerRow.setPadding(8, 0, 8, 22);
+
+        TextView titleTv = new TextView(this);
+        titleTv.setText("Audio Player Options");
+        titleTv.setTextColor(themeManager.getCurrentTheme().accentPrimary);
+        titleTv.setTextSize(18f);
+        titleTv.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        headerRow.addView(titleTv, titleLp);
+
+        TextView closeCircle = new TextView(this);
+        closeCircle.setText("✕");
+        closeCircle.setTextColor(Color.WHITE);
+        closeCircle.setTextSize(16f);
+        closeCircle.setGravity(Gravity.CENTER);
+        GradientDrawable closeBg = new GradientDrawable();
+        closeBg.setShape(GradientDrawable.OVAL);
+        closeBg.setColor(Color.parseColor("#263240"));
+        closeCircle.setBackground(closeBg);
+        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(76, 76);
+        closeCircle.setOnClickListener(v -> dialog.dismiss());
+        headerRow.addView(closeCircle, closeLp);
+        card.addView(headerRow);
+
+        boolean isDisc = themeManager.isVinylDiscMode();
+        boolean isWave = themeManager.isWaveformMode();
+
+        // 1. Set Custom Photo from Gallery (Save Permanently)
+        addScreenshot3OptionRow(card, "🖼️  Set Custom Photo from Gallery (Save Permanently)", Color.WHITE, v -> {
+            dialog.dismiss();
+            if (targetSong != null) {
+                songIdForPhotoPick = targetSong.id;
+                Intent pick = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(pick, 902);
+            }
+        });
+
+        // 2. Center Style: Switch to Rotating Vinyl Disc / Square Box
+        String discLabel = isDisc
+                ? "💿  Center Style: Switch to Square Album Art"
+                : "💿  Center Style: Switch to Rotating Vinyl Disc";
+        addScreenshot3OptionRow(card, discLabel, Color.WHITE, v -> {
+            dialog.dismiss();
+            boolean next = !themeManager.isVinylDiscMode();
+            themeManager.setVinylDiscMode(next);
+            fpAlbumArtDiscView.setVinylDiscMode(next);
+            Toast.makeText(this, next ? "Rotating Vinyl Disc + Top Danda ON" : "Square Album Box ON", Toast.LENGTH_SHORT).show();
+        });
+
+        // 3. Seekbar Style: Switch to Simple Straight Line / Tall Waveform Bars
+        String seekLabel = isWave
+                ? "📏  Seekbar Style: Switch to Simple Straight Line"
+                : "📏  Seekbar Style: Switch to Waveform Bars (Lambe Dande)";
+        addScreenshot3OptionRow(card, seekLabel, Color.WHITE, v -> {
+            dialog.dismiss();
+            boolean next = !themeManager.isWaveformMode();
+            themeManager.setWaveformMode(next);
+            fpWaveformSeekBar.setWaveformStyle(next);
+            Toast.makeText(this, next ? "Waveform Bars (Lambe Dande) ON" : "Simple Straight Line ON", Toast.LENGTH_SHORT).show();
+        });
+
+        // 4. Open Sound & Pitch Lab (Lofi / Slowed + Reverb)
+        addScreenshot3OptionRow(card, "🎛️  Open Sound & Pitch Lab (Lofi / Slowed + Reverb)", Color.WHITE, v -> {
+            dialog.dismiss();
+            if (musicService != null) {
+                new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
+            }
+        });
+
+        // 5. Open 5-Band Dolby Equalizer & Bass Boost
+        addScreenshot3OptionRow(card, "🎚️  Open 5-Band Dolby Equalizer & Bass Boost", Color.WHITE, v -> {
+            dialog.dismiss();
+            if (musicService != null) {
+                new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
+            }
+        });
+
+        // 6. Song Details & File Path (+ Swap Bottom 4 Controls button inside details)
+        addScreenshot3OptionRow(card, "ℹ️  Song Details & File Path", Color.WHITE, v -> {
+            dialog.dismiss();
+            if (targetSong != null) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Song Details & File Path")
+                        .setMessage("Title: " + targetSong.title
+                                + "\nArtist: " + targetSong.artist
+                                + "\nAlbum: " + targetSong.album
+                                + "\nDuration: " + targetSong.getFormattedDuration()
+                                + "\nFile Size: " + targetSong.getFormattedSize()
+                                + "\nFile Path:\n" + targetSong.path)
+                        .setPositiveButton("OK", null)
+                        .setNeutralButton("Swap Bottom 4 Icons", (d, w) -> {
+                            themeManager.rotateBottomControlOrder();
+                            refreshBottomSwappableButtons();
+                        })
+                        .show();
+            }
+        });
+
+        // 7. Delete Song Permanently (From Phone) in Red Color
+        addScreenshot3OptionRow(card, "🗑️  Delete Song Permanently (From Phone)", Color.parseColor("#EF4444"), v -> {
+            dialog.dismiss();
+            if (targetSong != null) {
+                SongAdapter.showPermanentDeleteDialog(this, targetSong, this::loadAllAudioAndVideoSongs);
+            }
+        });
+
+        dialog.setContentView(card);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                    (int) (getResources().getDisplayMetrics().widthPixels * 0.92f),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        dialog.show();
+    }
+
+    private void addScreenshot3OptionRow(LinearLayout parent, String text, int textColor, View.OnClickListener listener) {
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#1E293B"));
+        parent.addView(divider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2));
+
+        TextView item = new TextView(this);
+        item.setText(text);
+        item.setTextColor(textColor);
+        item.setTextSize(14.5f);
+        item.setTypeface(null, android.graphics.Typeface.BOLD);
+        item.setPadding(12, 28, 12, 28);
+        item.setOnClickListener(listener);
+        parent.addView(item);
+    }
+
+    private void shareCurrentSong() {
+        if (musicService == null || musicService.getCurrentSong() == null) return;
+        SongItem s = musicService.getCurrentSong();
+        try {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("audio/*");
+            share.putExtra(Intent.EXTRA_STREAM, s.getMediaUri());
+            share.putExtra(Intent.EXTRA_TEXT, "Listening to " + s.title + " on Hybrid Music Player");
+            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(share, "Share Audio Song"));
+        } catch (Exception ignored) {
+        }
     }
 
     private void checkPermissionsAndLoadMedia() {
@@ -376,13 +580,8 @@ public class MainActivity extends AppCompatActivity {
     private void loadAllAudioAndVideoSongs() {
         allSongs.clear();
         ContentResolver resolver = getContentResolver();
-
-        // 1. Load All Audio Songs (MP3, AAC, WAV, FLAC, M4A, OGG)
         queryMediaUri(resolver, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, false);
-
-        // 2. Load All Video Songs (MP4, MKV, 4K, 8K) to play seamlessly as Audio!
         queryMediaUri(resolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true);
-
         selectTopCategoryTab(currentTopTab);
     }
 
@@ -409,7 +608,7 @@ public class MainActivity extends AppCompatActivity {
                     long size = c.getLong(6);
                     long dateAdded = c.getLong(7);
 
-                    if (duration < 3000) continue; // Skip tiny notification beeps
+                    if (duration < 3000) continue;
                     String folder = "Music";
                     if (path != null) {
                         File parent = new File(path).getParentFile();
@@ -431,42 +630,50 @@ public class MainActivity extends AppCompatActivity {
         displayedSongs.clear();
 
         if (tabIndex == 0) {
+            // Songs Tab
             for (SongItem s : allSongs) if (!s.isVideoAudio) displayedSongs.add(s);
         } else if (tabIndex == 1) {
-            for (SongItem s : allSongs) if (s.isVideoAudio) displayedSongs.add(s);
-        } else if (tabIndex == 2) {
-            for (SongItem s : allSongs) if (themeManager.isFavorite(s.id)) displayedSongs.add(s);
-        } else if (tabIndex == 3) {
-            showPlaylistFilterPicker();
-            return;
-        } else if (tabIndex == 4) {
+            // Folders Tab
             List<SongItem> copy = new ArrayList<>(allSongs);
             Collections.sort(copy, (a, b) -> a.folderName.compareToIgnoreCase(b.folderName));
             displayedSongs.addAll(copy);
-        } else if (tabIndex == 5) {
+        } else if (tabIndex == 2) {
+            // Albums Tab
+            List<SongItem> copy = new ArrayList<>(allSongs);
+            Collections.sort(copy, (a, b) -> a.album.compareToIgnoreCase(b.album));
+            displayedSongs.addAll(copy);
+        } else if (tabIndex == 3) {
+            // Artists Tab
             List<SongItem> copy = new ArrayList<>(allSongs);
             Collections.sort(copy, (a, b) -> a.artist.compareToIgnoreCase(b.artist));
             displayedSongs.addAll(copy);
+        } else if (tabIndex == 4) {
+            // Video-Audio Tab (Plays 8K/4K/MP4 Videos as Audio!)
+            for (SongItem s : allSongs) if (s.isVideoAudio) displayedSongs.add(s);
+        } else if (tabIndex == 5) {
+            // Favorites Tab
+            for (SongItem s : allSongs) if (themeManager.isFavorite(s.id)) displayedSongs.add(s);
         }
 
+        totalSongsCountText.setText(displayedSongs.size() + " Songs");
+        styleTopCategoryPills();
         refreshMainListAdapter();
     }
 
-    private void showPlaylistFilterPicker() {
-        List<String> names = themeManager.getPlaylistNames();
-        String[] arr = names.toArray(new String[0]);
-        new AlertDialog.Builder(this)
-                .setTitle("Select Playlist Folder")
-                .setItems(arr, (d, which) -> {
-                    Set<String> ids = themeManager.getPlaylistSongs(arr[which]);
-                    displayedSongs.clear();
-                    for (SongItem s : allSongs) {
-                        if (ids.contains(String.valueOf(s.id))) displayedSongs.add(s);
-                    }
-                    if (displayedSongs.isEmpty()) displayedSongs.addAll(allSongs);
-                    refreshMainListAdapter();
-                })
-                .show();
+    private void styleTopCategoryPills() {
+        int accent = themeManager.getCurrentTheme().accentPrimary;
+        for (int i = 0; i < 6; i++) {
+            GradientDrawable pill = new GradientDrawable();
+            pill.setCornerRadius(50f);
+            if (i == currentTopTab) {
+                pill.setColor(accent);
+                topTabPills[i].setTextColor(Color.BLACK);
+            } else {
+                pill.setColor(Color.parseColor("#16202C"));
+                topTabPills[i].setTextColor(Color.WHITE);
+            }
+            topTabPills[i].setBackground(pill);
+        }
     }
 
     private void refreshMainListAdapter() {
@@ -480,7 +687,7 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override
             public void onThreeDotClick(SongItem song, int position) {
-                showSongThreeDotSheet(song);
+                showScreenshot3AudioOptionsDialog(song);
             }
         });
         if (musicService != null && musicService.getCurrentSong() != null) {
@@ -494,7 +701,8 @@ public class MainActivity extends AppCompatActivity {
         FrameLayout container = findViewById(R.id.mainContentContainer);
         container.removeAllViews();
 
-        categoryTabsScroll.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
+        topHeaderBar.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
+        subShuffleHeaderRow.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
 
         if (sectionIndex == 0) {
             container.addView(mainRecyclerView);
@@ -506,7 +714,6 @@ public class MainActivity extends AppCompatActivity {
         applyActiveThemeEverywhere();
     }
 
-    // Search Screen: Instant filtering + Search Bar & Audio/Video Pills at the BOTTOM
     private View buildBottomSearchScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -518,16 +725,16 @@ public class MainActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
         root.addView(searchRecycler, rvParams);
 
-        final int[] filterMode = {0}; // 0=All, 1=Audio Only, 2=Video-Audio Only
+        final int[] filterMode = {0};
         final List<SongItem> filteredList = new ArrayList<>(allSongs);
 
-        // Bottom Filter Pills (Right above the bottom search bar so thumb never reaches top!)
+        // Audio / Video Filter Pills at the BOTTOM right above the search bar
         LinearLayout pillRow = new LinearLayout(this);
         pillRow.setOrientation(LinearLayout.HORIZONTAL);
         pillRow.setGravity(Gravity.CENTER);
 
         Button pillAll = new Button(this);
-        pillAll.setText("All Media (" + allSongs.size() + ")");
+        pillAll.setText("All (" + allSongs.size() + ")");
         pillAll.setTextSize(11f);
 
         Button pillAudio = new Button(this);
@@ -543,9 +750,8 @@ public class MainActivity extends AppCompatActivity {
         pillRow.addView(pillVideo);
         root.addView(pillRow);
 
-        // Bottom Search Bar
         EditText searchBar = new EditText(this);
-        searchBar.setHint("🔍 Type here for instant song search...");
+        searchBar.setHint("🔍 Type song or singer name (Instant Search)...");
         searchBar.setSingleLine(true);
         searchBar.setTextColor(themeManager.getPrimaryTextColor());
         searchBar.setHintTextColor(themeManager.getSecondaryTextColor());
@@ -575,7 +781,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 @Override
                 public void onThreeDotClick(SongItem song, int pos) {
-                    showSongThreeDotSheet(song);
+                    showScreenshot3AudioOptionsDialog(song);
                 }
             });
             searchRecycler.setAdapter(ad);
@@ -595,7 +801,6 @@ public class MainActivity extends AppCompatActivity {
         return root;
     }
 
-    // Real Functional Settings (MI) Screen - Zero Dummy Items!
     private View buildMISettingsScreen() {
         ScrollView scroll = new ScrollView(this);
         LinearLayout box = new LinearLayout(this);
@@ -611,25 +816,27 @@ public class MainActivity extends AppCompatActivity {
         addSettingButton(box, "🔄 Reset Custom Theme Photo", v -> {
             themeManager.setCustomBgUri("");
             applyActiveThemeEverywhere();
-            Toast.makeText(this, "Clean Theme Restored", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Default Clean Theme Restored", Toast.LENGTH_SHORT).show();
+        });
+        addSettingButton(box, "🎛️ Open Sound & Pitch Lab (Lofi / Slowed + Reverb)", v -> {
+            if (musicService != null) new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
         });
         addSettingButton(box, "📳 Pocket Shake (" + (pocketShakeManager.isEnabled() ? "ON" : "OFF - Default") + ")", v -> {
             boolean next = !pocketShakeManager.isEnabled();
             pocketShakeManager.setEnabled(next);
             showBottomSection(2);
-            Toast.makeText(this, next ? "Pocket Shake ON (2x Hand Shake)" : "Pocket Shake OFF", Toast.LENGTH_SHORT).show();
         });
-        addSettingButton(box, "💿 Toggle Player Style: Square Box vs Rotating Disc + Danda", v -> {
+        addSettingButton(box, "💿 Toggle Center Style: Square Box vs Rotating Disc + Danda", v -> {
             boolean next = !themeManager.isVinylDiscMode();
             themeManager.setVinylDiscMode(next);
             fpAlbumArtDiscView.setVinylDiscMode(next);
-            Toast.makeText(this, next ? "Vinyl Disc + Top Danda Mode ON" : "Square Album Box Mode ON", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, next ? "Rotating Disc + Danda ON" : "Square Box ON", Toast.LENGTH_SHORT).show();
         });
         addSettingButton(box, "📊 Toggle Seekbar: Lambe Dande (Waveform) vs Simple Line", v -> {
             boolean next = !themeManager.isWaveformMode();
             themeManager.setWaveformMode(next);
             fpWaveformSeekBar.setWaveformStyle(next);
-            Toast.makeText(this, next ? "Lambe Dande (Waveform) ON" : "Simple Player Line ON", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, next ? "Lambe Dande (Waveform) ON" : "Simple Line ON", Toast.LENGTH_SHORT).show();
         });
         addSettingButton(box, "🎧 10-Second DJ Slow Fade Transition (" + (themeManager.isDjSlowFadeEnabled() ? "ON" : "OFF") + ")", v -> {
             boolean next = !themeManager.isDjSlowFadeEnabled();
@@ -637,10 +844,7 @@ public class MainActivity extends AppCompatActivity {
             if (musicService != null) musicService.setDjSlowFadeEnabled(next);
             showBottomSection(2);
         });
-        addSettingButton(box, "🎚️ Open PLAYit 5-Band Equalizer, Speed & Sleep Timer", v -> {
-            if (musicService != null) new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
-        });
-        addSettingButton(box, "⭐ Customize Header Title & Star Symbol", v -> showCustomizeHeaderDialog());
+        addSettingButton(box, "⭐ Customize App Name & Star Badge", v -> showCustomizeHeaderDialog());
 
         scroll.addView(box);
         return scroll;
@@ -672,6 +876,12 @@ public class MainActivity extends AppCompatActivity {
         int curIdx = musicService.getCurrentIndex();
         queueHeaderTitle.setText("Playing Queue (" + (q.isEmpty() ? 0 : curIdx + 1) + "/" + q.size() + ")");
 
+        GradientDrawable qBg = new GradientDrawable();
+        qBg.setColor(Color.parseColor("#0D131C"));
+        qBg.setCornerRadius(36f);
+        qBg.setStroke(3, themeManager.getCurrentTheme().accentPrimary);
+        queueSlidePanel.setBackground(qBg);
+
         SongAdapter qAdapter = new SongAdapter(this, q, themeManager, true, new SongAdapter.OnSongClickListener() {
             @Override
             public void onSongClick(int pos) {
@@ -702,14 +912,14 @@ public class MainActivity extends AppCompatActivity {
         fpAlbumArtDiscView.setLyricsPageSelected(true);
         if (musicService != null && musicService.getCurrentSong() != null) {
             SongItem s = musicService.getCurrentSong();
-            fpLyricsFavBtn.setText(themeManager.isFavorite(s.id) ? "❤️ Favorited" : "♡ Add Favorite");
+            fpLyricsFavBtn.setText(themeManager.isFavorite(s.id) ? "❤️ Favorited" : "♡ Favorite");
             String saved = themeManager.getSavedLyrics(s.id);
             if (saved != null && !saved.isEmpty()) {
                 fpLyricsText.setText(saved);
             } else if (autoSearchIfEmpty) {
                 fetchOnlineLyricsForCurrentSong();
             } else {
-                fpLyricsText.setText("🎵 " + s.title + " - " + s.artist + "\n\nTap 'Find Online Lyrics' below to search via Internet.");
+                fpLyricsText.setText("🎵 " + s.title + "\n" + s.artist + "\n\nTap 'Find Online' below to search lyrics.");
             }
         }
     }
@@ -722,7 +932,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             String resultLyrics = null;
             try {
-                String cleanTitle = song.title.replaceAll("\\(.*?\\)|\\[.*?\\]", "").trim();
+                String cleanTitle = song.title.replaceAll("[_\\-+]+", " ").replaceAll("\\(.*?\\)|\\[.*?\\]", "").trim();
                 String urlStr = "https://lrclib.net/api/search?q=" + URLEncoder.encode(cleanTitle, "UTF-8");
                 HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
                 conn.setConnectTimeout(6000);
@@ -744,7 +954,7 @@ public class MainActivity extends AppCompatActivity {
 
             final String finalLyrics = (resultLyrics != null && !resultLyrics.trim().isEmpty())
                     ? resultLyrics
-                    : "🎶 " + song.title + "\nSinger: " + song.artist + "\n\n(Online lyrics not found for this regional track. You can paste/save custom lyrics from the 3-dot menu!)";
+                    : "🎶 " + song.title + "\nSinger: " + song.artist + "\n\n(No online lyrics found for this track)";
 
             if (resultLyrics != null && !resultLyrics.trim().isEmpty()) {
                 themeManager.saveCustomLyrics(song.id, resultLyrics);
@@ -753,113 +963,34 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void showFullPlayerThreeDotMenu() {
-        String[] items = {
-                "💿 Switch Square Box / Rotating Disc + Danda",
-                "📊 Switch Lambe Dande (Waveform) / Simple Line",
-                "🖼️ Set Custom Photo for This Song from Library",
-                "🔄 Reorder Bottom 4 Icons (Timer, A-B, EQ, Speed)",
-                "🎚️ Open 5-Band Equalizer, Speed & Sleep Timer",
-                "📝 Edit / Save Custom Lyrics for This Song"
-        };
-        new AlertDialog.Builder(this)
-                .setTitle("Player Customization & Options")
-                .setItems(items, (d, which) -> {
-                    if (which == 0) {
-                        boolean next = !themeManager.isVinylDiscMode();
-                        themeManager.setVinylDiscMode(next);
-                        fpAlbumArtDiscView.setVinylDiscMode(next);
-                    } else if (which == 1) {
-                        boolean next = !themeManager.isWaveformMode();
-                        themeManager.setWaveformMode(next);
-                        fpWaveformSeekBar.setWaveformStyle(next);
-                    } else if (which == 2) {
-                        if (musicService != null && musicService.getCurrentSong() != null) {
-                            songIdForPhotoPick = musicService.getCurrentSong().id;
-                            Intent pick = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                            startActivityForResult(pick, 902);
-                        }
-                    } else if (which == 3) {
-                        themeManager.rotateBottomControlOrder();
-                        refreshBottomSwappableButtons();
-                        Toast.makeText(this, "Bottom 4 Controls Order Swapped!", Toast.LENGTH_SHORT).show();
-                    } else if (which == 4) {
-                        if (musicService != null) new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
-                    } else if (which == 5) {
-                        showEditLyricsDialog();
-                    }
-                })
-                .show();
-    }
-
     private void refreshBottomSwappableButtons() {
         int[] order = themeManager.getBottomControlOrder();
-        String[] labels = {"⏲ Timer", "🔁 A-B", "🎚 Equalizer", "⚡ Speed"};
+        float spd = musicService != null ? musicService.getPlaybackSpeed() : 1.0f;
+        String speedLabel = String.format(Locale.US, "⚡ %.1fx", spd);
+        String[] labels = {"🕒 Timer", "🔁 A-B", "🎚 Equali", speedLabel};
+
         for (int slot = 0; slot < 4; slot++) {
             final int actionType = order[slot];
             bottomSlotBtns[slot].setText(labels[actionType]);
+            bottomSlotBtns[slot].setTextColor(actionType == 2
+                    ? themeManager.getCurrentTheme().accentPrimary : Color.WHITE);
             bottomSlotBtns[slot].setOnClickListener(v -> {
                 if (musicService == null) return;
-                if (actionType == 0 || actionType == 2 || actionType == 3) {
-                    new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
-                } else if (actionType == 1) {
+                if (actionType == 1) {
                     String status = musicService.cycleABRepeat();
-                    Toast.makeText(this, "A-B Repeat: " + status, Toast.LENGTH_SHORT).show();
+                    bottomSlotBtns[1].setText("🔁 " + status);
+                    Toast.makeText(this, "Repeat Mode: " + status, Toast.LENGTH_SHORT).show();
+                } else {
+                    new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
                 }
             });
         }
     }
 
-    private void showSongThreeDotSheet(SongItem song) {
-        String[] opts = {
-                "▶ Play Song Now",
-                "❤️ Toggle Favorite",
-                "🖼️ Set Song Photo from Gallery (Permanent)",
-                "➕ Add to Playlist",
-                "🎚️ 5-Band Equalizer & Speed Slider",
-                "ℹ️ Song Details & Path",
-                "🗑️ Delete Song Permanently from Phone"
-        };
-        new AlertDialog.Builder(this)
-                .setTitle(song.title)
-                .setItems(opts, (d, which) -> {
-                    if (which == 0) {
-                        int idx = displayedSongs.indexOf(song);
-                        if (musicService != null && idx >= 0) {
-                            musicService.setQueue(displayedSongs, idx);
-                            openFullPlayer();
-                        }
-                    } else if (which == 1) {
-                        boolean fav = themeManager.toggleFavorite(song.id);
-                        Toast.makeText(this, fav ? "Added to Favorites ❤️" : "Removed from Favorites", Toast.LENGTH_SHORT).show();
-                    } else if (which == 2) {
-                        songIdForPhotoPick = song.id;
-                        Intent pick = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                        startActivityForResult(pick, 902);
-                    } else if (which == 3) {
-                        themeManager.addSongToPlaylist("My Top Hits", song.id);
-                        Toast.makeText(this, "Added to 'My Top Hits'", Toast.LENGTH_SHORT).show();
-                    } else if (which == 4) {
-                        if (musicService != null) new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
-                    } else if (which == 5) {
-                        new AlertDialog.Builder(this)
-                                .setTitle("Song Details")
-                                .setMessage("Title: " + song.title + "\nSinger: " + song.artist
-                                        + "\nDuration: " + song.getFormattedDuration()
-                                        + "\nSize: " + song.getFormattedSize()
-                                        + "\nPath: " + song.path)
-                                .setPositiveButton("OK", null).show();
-                    } else if (which == 6) {
-                        SongAdapter.showPermanentDeleteDialog(this, song, this::loadAllAudioAndVideoSongs);
-                    }
-                })
-                .show();
-    }
-
     private void showSortMenuDialog() {
         String[] sorts = {"🔤 A to Z Songs", "🆕 New Downloaded Songs", "📏 Long Size / Duration Songs"};
         new AlertDialog.Builder(this)
-                .setTitle("Sort Songs (High Contrast)")
+                .setTitle("Sort Songs")
                 .setItems(sorts, (d, which) -> {
                     if (which == 0) Collections.sort(displayedSongs, (a, b) -> a.title.compareToIgnoreCase(b.title));
                     else if (which == 1) Collections.sort(displayedSongs, (a, b) -> Long.compare(b.dateAdded, a.dateAdded));
@@ -895,16 +1026,14 @@ public class MainActivity extends AppCompatActivity {
 
         final EditText nameIn = new EditText(this);
         nameIn.setText(themeManager.getHeaderTitle());
-        nameIn.setHint("App Name (e.g. Hybrid Music Player)");
         box.addView(nameIn);
 
         final EditText starIn = new EditText(this);
         starIn.setText(themeManager.getHeaderStar());
-        starIn.setHint("Star Badge (e.g. ★, ⭐, ⚡, 👑)");
         box.addView(starIn);
 
         new AlertDialog.Builder(this)
-                .setTitle("Customize App Name & Star Icon")
+                .setTitle("Customize App Name & Star Badge")
                 .setView(box)
                 .setPositiveButton("Save", (d, w) -> {
                     themeManager.setHeaderTitle(nameIn.getText().toString().trim());
@@ -915,46 +1044,85 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showEditLyricsDialog() {
-        if (musicService == null || musicService.getCurrentSong() == null) return;
-        final SongItem song = musicService.getCurrentSong();
-        final EditText input = new EditText(this);
-        input.setText(themeManager.getSavedLyrics(song.id));
-        input.setHint("Paste or type song lyrics here...");
-        new AlertDialog.Builder(this)
-                .setTitle("Save Lyrics: " + song.title)
-                .setView(input)
-                .setPositiveButton("Save", (d, w) -> {
-                    themeManager.saveCustomLyrics(song.id, input.getText().toString());
-                    fpLyricsText.setText(input.getText().toString());
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     private void applyActiveThemeEverywhere() {
         ThemeManager.ThemePreset t = themeManager.getCurrentTheme();
         int priText = themeManager.getPrimaryTextColor();
-        int secText = themeManager.getSecondaryTextColor();
 
         rootLayout.setBackgroundColor(t.bgPrimary);
         fullPlayerOverlay.setBackgroundColor(t.bgPrimary);
-        topHeaderBar.setBackgroundColor(t.bgSurface);
         bottomNavBar.setBackgroundColor(t.bgSurface);
-        miniPlayerBar.setBackgroundColor(t.bgCard);
 
-        appTitleText.setText(themeManager.getHeaderTitle() + " " + themeManager.getHeaderStar());
-        appTitleText.setTextColor(priText);
+        // Style Play / Shuffle All Pill (Screenshot 1)
+        GradientDrawable shufflePill = new GradientDrawable();
+        shufflePill.setColor(t.accentPrimary);
+        shufflePill.setCornerRadius(50f);
+        playShuffleAllBtn.setBackground(shufflePill);
+
+        // Style Sort Button Pill (Screenshot 1)
+        GradientDrawable sortPill = new GradientDrawable();
+        sortPill.setColor(Color.parseColor("#16202C"));
+        sortPill.setCornerRadius(40f);
+        topSortMenuBtn.setBackground(sortPill);
+
+        // Style Floating Mini Player with Glowing Cyan Border (Screenshot 1)
+        GradientDrawable miniBg = new GradientDrawable();
+        miniBg.setColor(Color.parseColor("#121A24"));
+        miniBg.setCornerRadius(44f);
+        miniBg.setStroke(3, t.accentPrimary);
+        miniPlayerBar.setBackground(miniBg);
+
+        // Style Mini Player Cyan Circle Play Button (Screenshot 1)
+        GradientDrawable miniPlayCircle = new GradientDrawable();
+        miniPlayCircle.setShape(GradientDrawable.OVAL);
+        miniPlayCircle.setColor(t.accentPrimary);
+        miniPlayPauseBtn.setBackground(miniPlayCircle);
+
+        // Style Full Player Top Circular Down & Share Buttons (Screenshot 2)
+        GradientDrawable topCircle1 = new GradientDrawable();
+        topCircle1.setShape(GradientDrawable.OVAL);
+        topCircle1.setColor(Color.parseColor("#18222F"));
+        fpCloseBtn.setBackground(topCircle1);
+
+        GradientDrawable topCircle2 = new GradientDrawable();
+        topCircle2.setShape(GradientDrawable.OVAL);
+        topCircle2.setColor(Color.parseColor("#18222F"));
+        fpShareBtn.setBackground(topCircle2);
+
+        // Style Full Player Center Dark Circle with Glowing Cyan Ring (Screenshot 2)
+        GradientDrawable bigPlayRing = new GradientDrawable();
+        bigPlayRing.setShape(GradientDrawable.OVAL);
+        bigPlayRing.setColor(Color.parseColor("#122634"));
+        bigPlayRing.setStroke(5, t.accentPrimary);
+        fpPlayPauseBtn.setBackground(bigPlayRing);
+
+        // Style Full Player 3-Dot Circle (Screenshot 2)
+        GradientDrawable fpDotCircle = new GradientDrawable();
+        fpDotCircle.setShape(GradientDrawable.OVAL);
+        fpDotCircle.setColor(Color.parseColor("#122230"));
+        fpDotCircle.setStroke(3, t.accentPrimary);
+        fpThreeDotBtn.setBackground(fpDotCircle);
+        fpThreeDotBtn.setTextColor(t.accentPrimary);
+
+        // Style Playing Queue Pill (Screenshot 2)
+        GradientDrawable queuePill = new GradientDrawable();
+        queuePill.setColor(Color.parseColor("#0E1D28"));
+        queuePill.setCornerRadius(50f);
+        queuePill.setStroke(2, Color.parseColor("#1E4E68"));
+        fpQueueBtn.setBackground(queuePill);
+        fpQueueBtn.setTextColor(t.accentPrimary);
+
+        appTitleText.setText(themeManager.getHeaderStar());
         miniTitle.setTextColor(priText);
-        miniArtist.setTextColor(secText);
+        miniArtist.setTextColor(t.accentPrimary);
         fpSongTitle.setTextColor(priText);
-        fpSongArtist.setTextColor(secText);
-        fpHeaderStatus.setTextColor(t.accentPrimary);
+        fpSongArtist.setTextColor(t.accentPrimary);
 
         headerPuppyView.setAccentColor(t.accentPrimary);
         fpPuppyView.setAccentColor(t.accentPrimary);
         fpAlbumArtDiscView.setAccentColor(t.accentPrimary);
         fpWaveformSeekBar.setAccentColor(t.accentPrimary);
+
+        styleTopCategoryPills();
 
         if (themeManager.hasCustomBgPhoto()) {
             try {
@@ -972,8 +1140,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void updatePocketShakeButtonUI() {
         boolean on = pocketShakeManager != null && pocketShakeManager.isEnabled();
-        fpPocketShakeBtn.setText(on ? "📳 Shake: ON" : "📳 Shake: OFF");
-        fpPocketShakeBtn.setTextColor(on ? themeManager.getCurrentTheme().accentPrimary : 0xFFCBD5E1);
+        fpPocketShakeBtn.setText(on ? "📳 Pocket Shake: ON" : "📳 Pocket Shake: OFF");
+        fpPocketShakeBtn.setTextColor(on ? themeManager.getCurrentTheme().accentPrimary : Color.parseColor("#94A3B8"));
     }
 
     private void syncPlayerUI() {
@@ -986,22 +1154,22 @@ public class MainActivity extends AppCompatActivity {
         fpAlbumArtDiscView.setPlaying(playing);
         fpWaveformSeekBar.setPlaying(playing);
 
-        // Play ("▶") when paused, Two Straight Bars ("❚❚" / Do Dande) when playing
         miniPlayPauseBtn.setText(playing ? "❚❚" : "▶");
         fpPlayPauseBtn.setText(playing ? "❚❚" : "▶");
 
         List<SongItem> q = musicService.getQueueList();
-        fpQueueBtn.setText("Queue (" + (q.isEmpty() ? 0 : musicService.getCurrentIndex() + 1) + "/" + q.size() + ")");
+        fpQueueBtn.setText("🎵 Playing Queue (" + (q.isEmpty() ? 0 : musicService.getCurrentIndex() + 1) + "/" + q.size() + ")");
 
         fpShuffleBtn.setTextColor(musicService.isShuffle()
-                ? themeManager.getCurrentTheme().accentPrimary : 0xFFCBD5E1);
+                ? themeManager.getCurrentTheme().accentPrimary : Color.parseColor("#94A3B8"));
 
         int rep = musicService.getRepeatMode();
-        fpRepeatBtn.setText(rep == 1 ? "🔂" : (rep == 0 ? "🔁" : "➡️"));
+        fpRepeatBtn.setText(rep == 1 ? "🔂" : "🔁");
         fpRepeatBtn.setTextColor(rep != 2
-                ? themeManager.getCurrentTheme().accentPrimary : 0xFFCBD5E1);
+                ? themeManager.getCurrentTheme().accentPrimary : Color.parseColor("#94A3B8"));
 
         updatePocketShakeButtonUI();
+        refreshBottomSwappableButtons();
 
         if (cur != null) {
             miniTitle.setText(cur.title);
@@ -1052,7 +1220,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String formatMs(int ms) {
         int totalSec = Math.max(0, ms / 1000);
-        return String.format(Locale.US, "%02d:%02d", totalSec / 60, totalSec % 60);
+        return String.format(Locale.US, "%d:%02d", totalSec / 60, totalSec % 60);
     }
 
     @Override
