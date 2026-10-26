@@ -109,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
                 fpWaveformSeekBar.setABMarkers(musicService.getFractionA(), musicService.getFractionB());
                 fpWaveformSeekBar.setPlaying(playing);
 
-                // All 3 Muso Guddas dance in sync whenever music plays!
                 headerPuppyView.setPlayingState(playing);
                 fpPuppyView.setPlayingState(playing);
                 floatingGuddaView.setPlayingState(playing);
@@ -148,7 +147,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         initSystemVolumePercent();
         bindViews();
 
-        // Pocket Shake Default OFF when app opens
         pocketShakeManager = new PocketShakeManager(this, () -> {
             if (musicService != null) {
                 musicService.playNext();
@@ -175,7 +173,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         }
     }
 
-    // Intercept Hardware Volume Up / Down Keys to Show Screenshot (1000061267.jpg) Volume Patti!
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
@@ -300,10 +297,8 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
             }
         });
 
-        // Draggable Floating Gudda: Drag anywhere on screen & tap to change dance mode!
         setupDraggableFloatingGudda();
 
-        // Horizontal Swipe on Song List to switch tabs
         tabSwipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
@@ -334,7 +329,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
             return false;
         });
 
-        // Swipe Left / Right on Mini Player Bar to Change Songs Instantly!
         miniPlayerSwipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -374,7 +368,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         fpCloseBtn.setOnClickListener(v -> fullPlayerOverlay.setVisibility(View.GONE));
         fpShareBtn.setOnClickListener(v -> shareCurrentSong());
 
-        // Both Top-Right 3-Dot and Bottom-Right 3-Dot open the Pure White Audio Player Options
         View.OnClickListener open3DotMenu = v -> {
             SongItem cur = musicService != null ? musicService.getCurrentSong() : null;
             showScreenshot3AudioOptionsDialog(cur);
@@ -386,7 +379,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         queueBackdropOverlay.setOnClickListener(v -> closeRightSlideQueue());
         queueCloseCutBtn.setOnClickListener(v -> closeRightSlideQueue());
 
-        // Swipe Left/Right on Audio Main Screen (Album Art / Disc) Changes Song! Center Tap or Lyrics Pill opens Lyrics!
         fpAlbumArtDiscView.setOnArtGestureListener(new AlbumArtDiscView.OnArtGestureListener() {
             @Override
             public void onSwipeRightToLeft() {
@@ -499,7 +491,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         });
     }
 
-    // 3-DOT MENU: ALL ITEMS PURE WHITE (#FFFFFF), LARGER SIZE, AND "⋮" INSTEAD OF CROSS
     private void showScreenshot3AudioOptionsDialog(final SongItem targetSong) {
         final Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -514,7 +505,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         cardBg.setStroke(3, Color.WHITE);
         card.setBackground(cardBg);
 
-        // Top Row: "Audio Player Options" in Pure White + Circular Three-Dot "⋮" Button
         LinearLayout headerRow = new LinearLayout(this);
         headerRow.setOrientation(LinearLayout.HORIZONTAL);
         headerRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -837,7 +827,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
             }
             @Override
             public void onSongHoldTwoSeconds(SongItem song, int position) {
-                // 2-Second Hold on Song: Plays immediately & makes Muso Gudda dance!
                 if (musicService != null && position >= 0 && position < displayedSongs.size()) {
                     musicService.setQueue(displayedSongs, position);
                     headerPuppyView.setPlayingState(true);
@@ -872,7 +861,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         applyActiveThemeEverywhere();
     }
 
-    // SettingsSectionHelper Callbacks
     @Override public void onOpenThemePicker() { showThemePickerDialog(); }
     @Override public void onPickGalleryThemePhoto() {
         songIdForPhotoPick = -1;
@@ -1033,15 +1021,15 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         String[] labels = {"🕒 Timer", "🔁 A-B", "🎚 Equali", speedLabel};
 
         for (int slot = 0; slot < 4; slot++) {
-            final int actionType = order[slot];
-            bottomSlotBtns[slot].setText(labels[actionType]);
-            // Strictly Pure White (#FFFFFF) regardless of theme!
-            bottomSlotBtns[slot].setTextColor(Color.WHITE);
-            bottomSlotBtns[slot].setOnClickListener(v -> {
+            final int currentSlot = slot;
+            final int actionType = order[currentSlot];
+            bottomSlotBtns[currentSlot].setText(labels[actionType]);
+            bottomSlotBtns[currentSlot].setTextColor(Color.WHITE);
+            bottomSlotBtns[currentSlot].setOnClickListener(v -> {
                 if (musicService == null) return;
                 if (actionType == 1) {
                     String status = musicService.cycleABRepeat();
-                    bottomSlotBtns[slot].setText("🔁 " + status);
+                    bottomSlotBtns[currentSlot].setText("🔁 " + status);
                     Toast.makeText(this, "Repeat Mode: " + status, Toast.LENGTH_SHORT).show();
                 } else {
                     new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
@@ -1126,7 +1114,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         topSortMenuBtn.setBackground(sortPill);
         topSortMenuBtn.setTextColor(Color.WHITE);
 
-        // Mini Player Bar with Pure White Border & Pure White Controls
         GradientDrawable miniBg = new GradientDrawable();
         miniBg.setColor(Color.parseColor("#121A24"));
         miniBg.setCornerRadius(44f);
@@ -1139,7 +1126,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         miniPlayPauseBtn.setBackground(miniPlayCircle);
         miniPlayPauseBtn.setTextColor(Color.BLACK);
 
-        // Full Player Top Circular Buttons in Pure White Border
         GradientDrawable topCircle1 = new GradientDrawable();
         topCircle1.setShape(GradientDrawable.OVAL);
         topCircle1.setColor(Color.parseColor("#18222F"));
@@ -1161,7 +1147,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         fpQuickLyricsBtn.setBackground(lyrPill);
         fpQuickLyricsBtn.setTextColor(Color.WHITE);
 
-        // Full Player Giant Center Play/Pause Circle with Pure White Ring
         GradientDrawable bigPlayRing = new GradientDrawable();
         bigPlayRing.setShape(GradientDrawable.OVAL);
         bigPlayRing.setColor(Color.parseColor("#162432"));
@@ -1169,7 +1154,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         fpPlayPauseBtn.setBackground(bigPlayRing);
         fpPlayPauseBtn.setTextColor(Color.WHITE);
 
-        // Full Player 3-Dot Circles in Pure White
         GradientDrawable fpDotCircle = new GradientDrawable();
         fpDotCircle.setShape(GradientDrawable.OVAL);
         fpDotCircle.setColor(Color.parseColor("#162432"));
@@ -1184,7 +1168,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         fpBottomThreeDotBtn.setBackground(fpBotDotCircle);
         fpBottomThreeDotBtn.setTextColor(Color.WHITE);
 
-        // Playing Queue Pill in Pure White
         GradientDrawable queuePill = new GradientDrawable();
         queuePill.setColor(Color.parseColor("#141E2B"));
         queuePill.setCornerRadius(50f);
@@ -1192,7 +1175,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         fpQueueBtn.setBackground(queuePill);
         fpQueueBtn.setTextColor(Color.WHITE);
 
-        // Keep ALL Full Player Texts & Icons Pure White (#FFFFFF) regardless of theme!
         appTitleText.setText(themeManager.getHeaderStar());
         appTitleText.setTextColor(Color.WHITE);
         miniTitle.setTextColor(Color.WHITE);
@@ -1253,7 +1235,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
         int rep = musicService.getRepeatMode();
         fpRepeatBtn.setText(rep == 1 ? "🔂" : (rep == 0 ? "🔁" : "➡️"));
 
-        // Keep all icons strictly Pure White (#FFFFFF)
         fpShuffleBtn.setTextColor(Color.WHITE);
         fpRepeatBtn.setTextColor(Color.WHITE);
         updatePocketShakeButtonUI();
@@ -1266,7 +1247,6 @@ public class MainActivity extends AppCompatActivity implements SettingsSectionHe
             fpSongArtist.setText(cur.artist);
             if (mainAdapter != null) mainAdapter.setActiveSongId(cur.id);
 
-            // Load real photo for Mini Player & Full Player (Works for both Audio & Video-to-Audio!)
             MediaArtLoader.loadSongArtInto(this, cur, themeManager, miniThumbnail);
             new Thread(() -> {
                 final Bitmap bmp = MediaArtLoader.extractBitmapSync(
