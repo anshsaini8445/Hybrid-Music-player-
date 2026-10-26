@@ -5,8 +5,11 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -24,6 +27,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     public interface OnSongClickListener {
         void onSongClick(int position);
         void onThreeDotClick(SongItem song, int position);
+        default void onSongHoldTwoSeconds(SongItem song, int position) {
+            onSongClick(position);
+        }
     }
 
     private final Context context;
@@ -32,6 +38,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     private final OnSongClickListener listener;
     private final boolean isCompactQueueMode;
     private long activeSongId = -1;
+    private final Handler holdHandler = new Handler(Looper.getMainLooper());
 
     public SongAdapter(Context context, List<SongItem> songList, ThemeManager themeManager,
                        boolean isCompactQueueMode, OnSongClickListener listener) {
@@ -56,69 +63,74 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
-        SongItem song = songList.get(position);
+        final SongItem song = songList.get(position);
+        final int pos = position;
         ThemeManager.ThemePreset theme = themeManager.getCurrentTheme();
 
         boolean isCurrent = (song.id == activeSongId);
 
-        // Dark Rounded Card like Screenshot 1
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(theme.bgCard);
         cardBg.setCornerRadius(32f);
         if (isCurrent) {
-            cardBg.setStroke(2, theme.accentPrimary);
+            cardBg.setStroke(3, Color.WHITE);
         }
         holder.cardContainer.setBackground(cardBg);
 
-        // Cyan Rounded Square Thumbnail like Screenshot 1
         GradientDrawable thumbBg = new GradientDrawable();
         thumbBg.setColor(theme.accentPrimary);
         thumbBg.setCornerRadius(22f);
         holder.artImage.setBackground(thumbBg);
         holder.artImage.setClipToOutline(true);
 
-        // Circular Cyan-Bordered 3-Dot Button
+        // Pure White Circular 3-Dot Button
         GradientDrawable dotCircle = new GradientDrawable();
         dotCircle.setShape(GradientDrawable.OVAL);
-        dotCircle.setColor(Color.parseColor("#162230"));
-        dotCircle.setStroke(2, theme.accentPrimary);
+        dotCircle.setColor(Color.parseColor("#182230"));
+        dotCircle.setStroke(2, Color.WHITE);
         holder.threeDotBtn.setBackground(dotCircle);
-        holder.threeDotBtn.setTextColor(theme.accentPrimary);
+        holder.threeDotBtn.setTextColor(Color.WHITE);
 
         String prefix = isCompactQueueMode ? (position + 1) + ". " : "";
         holder.titleText.setText(prefix + song.title);
         holder.artistText.setText(song.artist + "  •  " + song.getFormattedDuration() + "  •  " + song.getFormattedSize());
 
-        holder.titleText.setTextColor(isCurrent ? theme.accentPrimary : themeManager.getPrimaryTextColor());
-        holder.artistText.setTextColor(themeManager.getSecondaryTextColor());
+        holder.titleText.setTextColor(Color.WHITE);
+        holder.artistText.setTextColor(Color.parseColor("#CBD5E1"));
 
-        // Load real song photo or custom gallery photo if available
-        String customPhoto = themeManager.getSongCustomPhoto(song.id);
-        boolean loaded = false;
-        try {
-            if (customPhoto != null && !customPhoto.isEmpty()) {
-                holder.artImage.setImageURI(Uri.parse(customPhoto));
-                loaded = (holder.artImage.getDrawable() != null);
-            }
-            if (!loaded && !song.isVideoAudio) {
-                holder.artImage.setImageURI(song.getAlbumArtUri());
-                loaded = (holder.artImage.getDrawable() != null);
-            }
-        } catch (Exception ignored) {
-        }
-
-        if (!loaded) {
-            holder.artImage.setImageDrawable(null);
-        }
+        // Load real embedded MP3 or Video-Audio thumbnail asynchronously so it ALWAYS appears!
+        MediaArtLoader.loadSongArtInto(context, song, themeManager, holder.artImage);
 
         holder.threeDotBtn.setVisibility(isCompactQueueMode ? View.GONE : View.VISIBLE);
 
+        // 2-Second Hold Detector: Holding for 2 seconds plays song & makes Gudda dance!
+        final boolean[] holdTriggered = {false};
+        final Runnable holdRunnable = () -> {
+            holdTriggered[0] = true;
+            if (listener != null) {
+                listener.onSongHoldTwoSeconds(song, pos);
+            }
+        };
+
+        holder.itemView.setOnTouchListener((v, event) -> {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                holdTriggered[0] = false;
+                holdHandler.postDelayed(holdRunnable, 1800); // ~2 seconds hold
+            } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                holdHandler.removeCallbacks(holdRunnable);
+            }
+            return false;
+        });
+
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onSongClick(position);
+            if (!holdTriggered[0] && listener != null) {
+                listener.onSongClick(pos);
+            }
         });
 
         holder.threeDotBtn.setOnClickListener(v -> {
-            if (listener != null) listener.onThreeDotClick(song, position);
+            if (listener != null) listener.onThreeDotClick(song, pos);
         });
     }
 
