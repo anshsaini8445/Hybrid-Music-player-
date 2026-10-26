@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/songCardContainer"
     android:layout_width="match_parent"
-    android:layout_height="66dp"
-    android:background="?attr/selectableItemBackground"
+    android:layout_height="76dp"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="5dp"
+    android:background="#121A24"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="6dp">
+    android:paddingHorizontal="12dp">
 
+    <!-- Left Cyan Rounded Square Thumbnail -->
     <ImageView
         android:id="@+id/songThumbnail"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:padding="2dp"
-        android:scaleType="centerCrop"
-        android:src="@android:drawable/ic_media_play" />
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="#00E5FF"
+        android:scaleType="centerCrop" />
 
+    <!-- Middle Song Title & Subtitle (Artist • Duration • MB) -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginHorizontal="12dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -38,21 +41,23 @@
             android:id="@+id/songArtist"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Singer Name • 03:45"
-            android:textColor="#CBD5E1"
+            android:text="Humble Music • 03:53 • 3.6 MB"
+            android:textColor="#94A3B8"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <ImageView
+    <!-- Right Circular Cyan-Bordered 3-Dot Button -->
+    <TextView
         android:id="@+id/threeDotButton"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="More Options"
-        android:padding="8dp"
-        android:src="@android:drawable/ic_menu_more" />
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:gravity="center"
+        android:text="⋮"
+        android:textColor="#00E5FF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
 </LinearLayout>
