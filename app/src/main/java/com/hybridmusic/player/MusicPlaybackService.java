@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.graphics.Bitmap;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
@@ -20,6 +21,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import androidx.core.app.NotificationCompat;
+import androidx.media.app.NotificationCompat.MediaStyle;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,9 +32,11 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         void onStateChanged();
     }
 
+    public static final String ACTION_SHUFFLE = "com.hybridmusic.player.ACTION_SHUFFLE";
+    public static final String ACTION_PREV = "com.hybridmusic.player.ACTION_PREV";
     public static final String ACTION_PLAY_PAUSE = "com.hybridmusic.player.ACTION_PLAY_PAUSE";
     public static final String ACTION_NEXT = "com.hybridmusic.player.ACTION_NEXT";
-    public static final String ACTION_PREV = "com.hybridmusic.player.ACTION_PREV";
+    public static final String ACTION_REPEAT = "com.hybridmusic.player.ACTION_REPEAT";
     public static final String ACTION_CLOSE = "com.hybridmusic.player.ACTION_CLOSE";
 
     private static final String CHANNEL_ID = "hybrid_music_playback_channel";
@@ -45,11 +49,12 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private BassBoost bassBoost;
     private PresetReverb presetReverb;
     private LoudnessEnhancer loudnessEnhancer;
+    private ThemeManager themeManager;
 
     private List<SongItem> queueList = new ArrayList<>();
     private int currentIndex = 0;
     private boolean isShuffle = false;
-    private int repeatMode = 0; // 0 = Loop All, 1 = Repeat One, 2 = Off
+    private int repeatMode = 0; // 0 = Loop All, 1 = Repeat One, 2 = Repeat Off
 
     private float userSpeed = 1.0f;
     private float userPitch = 1.0f;
@@ -57,10 +62,9 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private int extraBoostPercent = 0;
     private boolean djSlowFadeEnabled = true;
 
-    // NEW PRO FEATURES: 8D Spatial Surround Audio + 432Hz/528Hz Frequency Tuning
     private boolean spatial8DAudioEnabled = false;
     private float spatial8DAngle = 0f;
-    private int frequencyTuningMode = 0; // 0 = 440Hz Standard, 1 = 432Hz Crystal, 2 = 528Hz Miracle
+    private int frequencyTuningMode = 0;
 
     private int pointAMs = -1;
     private int pointBMs = -1;
@@ -87,7 +91,6 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                     seekTo(pointAMs);
                 }
 
-                // Calculate base fade factor for 10-Second DJ Slow Fade
                 float baseVol = 1.0f;
                 if (djSlowFadeEnabled && dur > 15000 && pos >= dur - 10000) {
                     float remainingSec = Math.max(0.1f, (dur - pos) / 1000f);
@@ -97,10 +100,9 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                     applySpeedAndPitch(userSpeed, getEffectivePitch());
                 }
 
-                // Real 8D Spatial Surround Rotating Panning (360-degree Left/Right Audio Rotation)
                 if (spatial8DAudioEnabled) {
                     spatial8DAngle += 0.085f;
-                    float pan = (float) Math.sin(spatial8DAngle); // -1.0 (Left) to +1.0 (Right)
+                    float pan = (float) Math.sin(spatial8DAngle);
                     float depth = 0.82f + 0.18f * (float) Math.cos(spatial8DAngle * 0.5f);
                     float leftVol = baseVol * depth * (pan <= 0f ? 1.0f : (1.0f - 0.78f * pan));
                     float rightVol = baseVol * depth * (pan >= 0f ? 1.0f : (1.0f + 0.78f * pan));
@@ -116,23 +118,21 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                     pausePlaybackAndClearOngoing();
                 }
             }
-            handler.postDelayed(this, 85); // Fast 85ms tick for smooth 8D audio rotation!
+            handler.postDelayed(this, 85);
         }
     };
 
     private float getEffectivePitch() {
         float freqRatio = 1.0f;
-        if (frequencyTuningMode == 1) {
-            freqRatio = 432.0f / 440.0f; // 0.9818f (432Hz Natural Warm Tuning)
-        } else if (frequencyTuningMode == 2) {
-            freqRatio = 528.0f / 440.0f; // 1.20f (528Hz Bright Harmonic Tuning)
-        }
+        if (frequencyTuningMode == 1) freqRatio = 432.0f / 440.0f;
+        else if (frequencyTuningMode == 2) freqRatio = 528.0f / 440.0f;
         return Math.max(0.5f, Math.min(2.0f, userPitch * freqRatio));
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        themeManager = new ThemeManager(this);
         createNotificationChannel();
         handler.post(monitorRunnable);
     }
@@ -141,23 +141,40 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
-            if (ACTION_PLAY_PAUSE.equals(action)) {
-                playToggle();
-            } else if (ACTION_NEXT.equals(action)) {
-                playNext();
-            } else if (ACTION_PREV.equals(action)) {
-                playPrevious();
-            } else if (ACTION_CLOSE.equals(action)) {
-                try {
-                    if (mediaPlayer != null && isPlaying()) {
-                        mediaPlayer.pause();
+            switch (action) {
+                case ACTION_SHUFFLE:
+                    isShuffle = !isShuffle;
+                    SongItem curS = getCurrentSong();
+                    if (curS != null) showNotification(curS, isPlaying());
+                    notifyUI();
+                    break;
+                case ACTION_PREV:
+                    playPrevious();
+                    break;
+                case ACTION_PLAY_PAUSE:
+                    playToggle();
+                    break;
+                case ACTION_NEXT:
+                    playNext();
+                    break;
+                case ACTION_REPEAT:
+                    repeatMode = (repeatMode + 1) % 3;
+                    SongItem curR = getCurrentSong();
+                    if (curR != null) showNotification(curR, isPlaying());
+                    notifyUI();
+                    break;
+                case ACTION_CLOSE:
+                    try {
+                        if (mediaPlayer != null && isPlaying()) {
+                            mediaPlayer.pause();
+                        }
+                        stopForeground(true);
+                        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                        if (nm != null) nm.cancel(NOTIFICATION_ID);
+                    } catch (Exception ignored) {
                     }
-                    stopForeground(true);
-                    NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                    if (nm != null) nm.cancel(NOTIFICATION_ID);
-                } catch (Exception ignored) {
-                }
-                notifyUI();
+                    notifyUI();
+                    break;
             }
         }
         return START_NOT_STICKY;
@@ -226,7 +243,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     public void set8DSpatialAudioEnabled(boolean enabled) {
         this.spatial8DAudioEnabled = enabled;
         if (enabled) {
-            applyReverbPreset(2); // Add subtle Medium Hall depth for 8D surround feel
+            applyReverbPreset(2);
         } else if (mediaPlayer != null) {
             try {
                 mediaPlayer.setVolume(1.0f, 1.0f);
@@ -578,6 +595,8 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
 
     public void setShuffle(boolean shuffle) {
         this.isShuffle = shuffle;
+        SongItem cur = getCurrentSong();
+        if (cur != null) showNotification(cur, isPlaying());
     }
 
     public boolean isShuffle() {
@@ -586,6 +605,8 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
 
     public void setRepeatMode(int mode) {
         this.repeatMode = mode % 3;
+        SongItem cur = getCurrentSong();
+        if (cur != null) showNotification(cur, isPlaying());
     }
 
     public int getRepeatMode() {
@@ -609,8 +630,8 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, "Hybrid Music Player Controls", NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("Music playback notification with one-tap close");
+                    CHANNEL_ID, "Hybrid Studio Playback", NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Unique modern notification with Shuffle, Repeat, Next, Prev & Close");
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -625,26 +646,49 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    /**
+     * Unique Modern Notification Panel:
+     * Shows Album Art + Shuffle ON/OFF + Prev + Play/Pause + Next + Repeat/Close
+     */
     private void showNotification(SongItem song, boolean playing) {
         try {
             Intent openIntent = new Intent(this, MainActivity.class);
             PendingIntent contentIntent = PendingIntent.getActivity(this, 0, openIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
+            String shuffleBadge = isShuffle ? "🔀 Shuffle: ON" : "🔀 Shuffle: OFF";
+            String repeatBadge = (repeatMode == 1) ? "🔂 Repeat: 1" : (repeatMode == 0 ? "🔁 Loop: ALL" : "➡️ Repeat: OFF");
+            String statusText = song.artist + "  •  " + shuffleBadge + "  •  " + repeatBadge;
+
+            Bitmap coverBmp = MediaArtLoader.createRealisticStudioCoverBitmap(song.title);
+
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(playing ? android.R.drawable.ic_media_play : android.R.drawable.ic_media_pause)
-                    .setContentTitle(song.title)
-                    .setContentText(song.artist)
-                    .setSubText("Hybrid Music Player")
+                    .setLargeIcon(coverBmp)
+                    .setContentTitle("🎵 " + song.title)
+                    .setContentText(statusText)
+                    .setSubText("Hybrid Studio • " + repeatBadge)
                     .setContentIntent(contentIntent)
+                    .setDeleteIntent(getActionIntent(ACTION_CLOSE, 99))
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setOngoing(playing)
                     .setSilent(true)
-                    .addAction(android.R.drawable.ic_media_previous, "Prev", getActionIntent(ACTION_PREV, 1))
+                    .setColorized(true)
+                    .setColor(0xFF0A111E)
+                    // 5 Modern Interactive Notification Buttons: Shuffle, Prev, Play/Pause, Next, Repeat/Close
+                    .addAction(android.R.drawable.ic_menu_sort_by_size,
+                            isShuffle ? "Shuffle ON" : "Shuffle OFF", getActionIntent(ACTION_SHUFFLE, 1))
+                    .addAction(android.R.drawable.ic_media_previous,
+                            "Prev", getActionIntent(ACTION_PREV, 2))
                     .addAction(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
-                            playing ? "Pause" : "Play", getActionIntent(ACTION_PLAY_PAUSE, 2))
-                    .addAction(android.R.drawable.ic_media_next, "Next", getActionIntent(ACTION_NEXT, 3))
-                    .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Close", getActionIntent(ACTION_CLOSE, 4));
+                            playing ? "Pause" : "Play", getActionIntent(ACTION_PLAY_PAUSE, 3))
+                    .addAction(android.R.drawable.ic_media_next,
+                            "Next", getActionIntent(ACTION_NEXT, 4))
+                    .addAction(playing ? android.R.drawable.ic_menu_rotate : android.R.drawable.ic_menu_close_clear_cancel,
+                            playing ? repeatBadge : "Close ✕",
+                            getActionIntent(playing ? ACTION_REPEAT : ACTION_CLOSE, 5))
+                    .setStyle(new MediaStyle()
+                            .setShowActionsInCompactView(1, 2, 3));
 
             Notification notification = builder.build();
             if (playing) {
