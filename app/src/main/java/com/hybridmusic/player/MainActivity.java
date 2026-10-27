@@ -66,17 +66,17 @@ public class MainActivity extends AppCompatActivity implements
     private SongAdapter mainAdapter;
 
     private int currentTopTab = 0; // 0=Songs, 1=Folders, 2=Albums, 3=Artists, 4=VideoAudio, 5=Favorites
-    private int currentBottomTab = 0; // 0=Songs, 1=Search, 2=Settings(MI)
+    private int currentBottomTab = 0; // 0=Songs, 1=Search, 2=Settings(ME)
     private long songIdForPhotoPick = -1;
-    private int currentDisplayVolumePercent = 80; // 0% to 200%
+    private int currentDisplayVolumePercent = 80;
     private boolean isSuperLoud200Boost = false;
     private String abRepeatLabel = "A-B";
 
     // Main Library Views
-    private View rootLayout, topBrandBar, topHeaderBar, subShuffleHeaderRow, miniPlayerBar, bottomNavBar, fullPlayerOverlay;
-    private ImageView customThemeBgImage, miniThumbnail, profileThemeButton, topSortMenuBtn;
-    private ImageView miniPrevBtn, miniPlayPauseBtn, miniNextBtn, miniThreeDotBtn;
-    private TextView appTitleText, playShuffleAllBtn, randomPlayBtn, totalSongsCountText;
+    private View rootLayout, topBrandBar, topHeaderBar, miniPlayerBar, miniTextContainer, bottomNavBar, fullPlayerOverlay;
+    private ImageView customThemeBgImage, miniThumbnail, topSortMenuBtn;
+    private ImageView miniPrevBtn, miniPlayPauseBtn, miniNextBtn;
+    private TextView appTitleText, totalSongsCountText;
     private TextView miniTitle, miniArtist;
     private Button navSongsBtn, navSearchBtn, navSettingsBtn;
     private final TextView[] topTabPills = new TextView[6];
@@ -86,10 +86,11 @@ public class MainActivity extends AppCompatActivity implements
     // Full Studio Player Views
     private AlbumArtDiscView fpAlbumArtDiscView;
     private View fpLyricsContainer, queueBackdropOverlay, queueSlidePanel;
-    private ImageView fpCloseBtn, fpTopEqualizerBtn, fpThreeDotBtn, fpFavoriteHeartBtn;
+    private ImageView fpCloseBtn, fpThreeDotBtn, fpFavoriteHeartBtn;
     private ImageView fpShuffleBtn, fpPrevBtn, fpPlayPauseBtn, fpNextBtn, fpRepeatBtn;
     private ImageView fpBottomThreeDotBtn, queueCloseCutBtn;
-    private TextView fpQuickLyricsBtn, fpLyricsText, fpSongTitle, fpSongArtist, fpCurrentTime, fpTotalTime;
+    private TextView fpQuickLyricsBtn, fpLyricsText, fpFindLyricsOnlineBtn, fpBackToArtBtn;
+    private TextView fpSongTitle, fpSongArtist, fpCurrentTime, fpTotalTime;
     private WaveformSeekBarView fpWaveformSeekBar;
     private TextView fpPocketShakeBtn, fpQueueBtn, queueHeaderTitle;
     private Button fpLyricsFavBtn;
@@ -98,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private GestureDetector tabSwipeDetector;
-    private GestureDetector miniPlayerSwipeDetector;
+    private GestureDetector miniPlayerGestureDetector;
 
     private final Runnable progressTicker = new Runnable() {
         @Override
@@ -108,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements
                 int dur = musicService.getDuration();
                 boolean playing = musicService.isPlaying();
 
-                // Check "Aadha Gaana Chalana" (Song Cutter / Trimmer Start & End bounds)
                 SongItem cur = musicService.getCurrentSong();
                 if (cur != null && playing) {
                     int trimStartMs = themeManager.getSongTrimStartSec(cur.id) * 1000;
@@ -227,8 +227,8 @@ public class MainActivity extends AppCompatActivity implements
         customThemeBgImage = findViewById(R.id.customThemeBgImage);
         topBrandBar = findViewById(R.id.topBrandBar);
         topHeaderBar = findViewById(R.id.topHeaderBar);
-        subShuffleHeaderRow = findViewById(R.id.subShuffleHeaderRow);
         miniPlayerBar = findViewById(R.id.miniPlayerBar);
+        miniTextContainer = findViewById(R.id.miniTextContainer);
         bottomNavBar = findViewById(R.id.bottomNavBar);
         fullPlayerOverlay = findViewById(R.id.fullPlayerOverlay);
 
@@ -239,10 +239,7 @@ public class MainActivity extends AppCompatActivity implements
         topTabPills[4] = findViewById(R.id.tabVideoAudio);
         topTabPills[5] = findViewById(R.id.tabFavorites);
 
-        profileThemeButton = findViewById(R.id.profileThemeButton);
         topSortMenuBtn = findViewById(R.id.topSortMenuBtn);
-        playShuffleAllBtn = findViewById(R.id.playShuffleAllBtn);
-        randomPlayBtn = findViewById(R.id.randomPlayBtn);
         totalSongsCountText = findViewById(R.id.totalSongsCountText);
         appTitleText = findViewById(R.id.appTitleText);
         floatingGuddaView = findViewById(R.id.floatingGuddaView);
@@ -259,16 +256,16 @@ public class MainActivity extends AppCompatActivity implements
         miniPrevBtn = findViewById(R.id.miniPrevBtn);
         miniPlayPauseBtn = findViewById(R.id.miniPlayPauseBtn);
         miniNextBtn = findViewById(R.id.miniNextBtn);
-        miniThreeDotBtn = findViewById(R.id.miniThreeDotBtn);
 
         fpCloseBtn = findViewById(R.id.fpCloseBtn);
-        fpTopEqualizerBtn = findViewById(R.id.fpTopEqualizerBtn);
         fpThreeDotBtn = findViewById(R.id.fpThreeDotBtn);
         fpFavoriteHeartBtn = findViewById(R.id.fpFavoriteHeartBtn);
         fpQuickLyricsBtn = findViewById(R.id.fpQuickLyricsBtn);
         fpAlbumArtDiscView = findViewById(R.id.fpAlbumArtDiscView);
         fpLyricsContainer = findViewById(R.id.fpLyricsContainer);
         fpLyricsText = findViewById(R.id.fpLyricsText);
+        fpFindLyricsOnlineBtn = findViewById(R.id.fpFindLyricsOnlineBtn);
+        fpBackToArtBtn = findViewById(R.id.fpBackToArtBtn);
         fpLyricsFavBtn = findViewById(R.id.fpLyricsFavBtn);
         fpSongTitle = findViewById(R.id.fpSongTitle);
         fpSongTitle.setSelected(true);
@@ -308,27 +305,8 @@ public class MainActivity extends AppCompatActivity implements
             AudioThreeDotStudioHelper.attachBouncySpring(topTabPills[i], () -> selectTopCategoryTab(tabIdx));
         }
 
-        AudioThreeDotStudioHelper.attachBouncySpring(profileThemeButton, this::onOpenEqualizerAndSoundLab);
         AudioThreeDotStudioHelper.attachBouncySpring(topSortMenuBtn, this::showAudioStudioSortAndToolsMenu);
         appTitleText.setOnClickListener(v -> showCustomizeHeaderDialog());
-
-        AudioThreeDotStudioHelper.attachBouncySpring(playShuffleAllBtn, () -> {
-            if (musicService != null && !displayedSongs.isEmpty()) {
-                musicService.setShuffle(true);
-                musicService.setQueue(displayedSongs, 0);
-                openFullPlayer();
-            }
-        });
-
-        AudioThreeDotStudioHelper.attachBouncySpring(randomPlayBtn, () -> {
-            if (musicService != null && !displayedSongs.isEmpty()) {
-                int randIdx = (int) (Math.random() * displayedSongs.size());
-                musicService.setQueue(displayedSongs, randIdx);
-                openFullPlayer();
-            }
-        });
-
-        setupDraggableFloatingGudda();
 
         tabSwipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -360,9 +338,14 @@ public class MainActivity extends AppCompatActivity implements
             return false;
         });
 
-        miniPlayerSwipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+        // Instant 1-Click Open on Mini-Player Bar + Left/Right Swipe to Change Song!
+        miniPlayerGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
                 openFullPlayer();
                 return true;
             }
@@ -370,7 +353,7 @@ public class MainActivity extends AppCompatActivity implements
             public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
                 if (e1 == null || e2 == null || musicService == null) return false;
                 float dx = e2.getX() - e1.getX();
-                if (Math.abs(dx) > 70) {
+                if (Math.abs(dx) > 65) {
                     if (dx < 0) musicService.playNext();
                     else musicService.playPrevious();
                     return true;
@@ -378,7 +361,11 @@ public class MainActivity extends AppCompatActivity implements
                 return false;
             }
         });
-        miniPlayerBar.setOnTouchListener((v, event) -> miniPlayerSwipeDetector.onTouchEvent(event));
+
+        View.OnTouchListener instantMiniTouch = (v, event) -> miniPlayerGestureDetector.onTouchEvent(event);
+        miniPlayerBar.setOnTouchListener(instantMiniTouch);
+        miniTextContainer.setOnTouchListener(instantMiniTouch);
+        miniThumbnail.setOnTouchListener(instantMiniTouch);
 
         navSongsBtn.setOnClickListener(v -> showBottomSection(0));
         navSearchBtn.setOnClickListener(v -> showBottomSection(1));
@@ -393,11 +380,8 @@ public class MainActivity extends AppCompatActivity implements
         AudioThreeDotStudioHelper.attachBouncySpring(miniNextBtn, () -> {
             if (musicService != null) musicService.playNext();
         });
-        AudioThreeDotStudioHelper.attachBouncySpring(miniThreeDotBtn, () ->
-                AudioThreeDotStudioHelper.showAudioThreeDotStudioDialog(MainActivity.this, MainActivity.this));
 
         AudioThreeDotStudioHelper.attachBouncySpring(fpCloseBtn, this::closeFullPlayerSmoothly);
-        AudioThreeDotStudioHelper.attachBouncySpring(fpTopEqualizerBtn, this::onOpenEqualizerAndSoundLab);
 
         Runnable openStudioMenu = () ->
                 AudioThreeDotStudioHelper.showAudioThreeDotStudioDialog(MainActivity.this, MainActivity.this);
@@ -427,11 +411,11 @@ public class MainActivity extends AppCompatActivity implements
 
         AudioThreeDotStudioHelper.attachBouncySpring(fpQuickLyricsBtn, () -> openLyricsPanel(true));
 
-        findViewById(R.id.fpBackToArtBtn).setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpBackToArtBtn, () -> {
             fpLyricsContainer.setVisibility(View.GONE);
             fpAlbumArtDiscView.setLyricsPageSelected(false);
         });
-        findViewById(R.id.fpFindLyricsOnlineBtn).setOnClickListener(v -> fetchOnlineLyricsForCurrentSong());
+        AudioThreeDotStudioHelper.attachBouncySpring(fpFindLyricsOnlineBtn, this::fetchOnlineLyricsForCurrentSong);
         fpLyricsFavBtn.setOnClickListener(v -> onToggleFavorite());
 
         AudioThreeDotStudioHelper.attachBouncySpring(fpPocketShakeBtn, () -> {
@@ -460,52 +444,30 @@ public class MainActivity extends AppCompatActivity implements
             if (musicService != null) musicService.playNext();
         });
 
+        // SHUFFLE BUTTON: Completely Transforms & Spins 360° on Click!
         AudioThreeDotStudioHelper.attachBouncySpring(fpShuffleBtn, () -> {
             if (musicService != null) {
                 boolean next = !musicService.isShuffle();
                 musicService.setShuffle(next);
+                fpShuffleBtn.animate().rotationBy(360f).setDuration(260).start();
                 syncPlayerUI();
-                Toast.makeText(this, next ? "Shuffle Play Active" : "Shuffle OFF", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, next ? "🔀 Shuffle Mode: ON" : "Shuffle Mode: OFF", Toast.LENGTH_SHORT).show();
             }
         });
 
+        // REPEAT BUTTON: Completely Transforms & Spins 360° on Click!
         AudioThreeDotStudioHelper.attachBouncySpring(fpRepeatBtn, () -> {
             if (musicService != null) {
                 int nextMode = (musicService.getRepeatMode() + 1) % 3;
                 musicService.setRepeatMode(nextMode);
+                fpRepeatBtn.animate().rotationBy(360f).setDuration(260).start();
                 syncPlayerUI();
-                String[] labels = {"Loop All Songs Active", "Repeat Current Song Active", "Play 1 Song (Repeat OFF)"};
+                String[] labels = {"🔁 Loop All Songs: ON", "🔂 Repeat Current Song (1): ON", "➡️ Repeat Mode: OFF"};
                 Toast.makeText(this, labels[nextMode], Toast.LENGTH_SHORT).show();
             }
         });
 
         refreshBottomSwappableButtons();
-    }
-
-    private void setupDraggableFloatingGudda() {
-        floatingGuddaView.setOnTouchListener(new View.OnTouchListener() {
-            float dX, dY, downRawX, downRawY;
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        dX = view.getX() - event.getRawX();
-                        dY = view.getY() - event.getRawY();
-                        downRawX = event.getRawX();
-                        downRawY = event.getRawY();
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        view.animate().x(event.getRawX() + dX).y(event.getRawY() + dY).setDuration(0).start();
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        if (Math.abs(event.getRawX() - downRawX) < 18 && Math.abs(event.getRawY() - downRawY) < 18) {
-                            view.performClick();
-                        }
-                        return true;
-                }
-                return false;
-            }
-        });
     }
 
     private void applyLanguageLabels() {
@@ -519,7 +481,7 @@ public class MainActivity extends AppCompatActivity implements
             topTabPills[5].setText("पसंदीदा");
             navSongsBtn.setText("🎵 गाने");
             navSearchBtn.setText("🔍 खोजें");
-            navSettingsBtn.setText("⚙️ सेटिंग (MI)");
+            navSettingsBtn.setText("✨ ME स्टूडियो");
         } else if ("Punjabi".equalsIgnoreCase(lang)) {
             topTabPills[0].setText("ਗਾਣੇ");
             topTabPills[1].setText("ਫੋਲਡਰ");
@@ -529,7 +491,7 @@ public class MainActivity extends AppCompatActivity implements
             topTabPills[5].setText("ਪਸੰਦੀਦਾ");
             navSongsBtn.setText("🎵 ਗਾਣੇ");
             navSearchBtn.setText("🔍 ਖੋਜ");
-            navSettingsBtn.setText("⚙️ ਸੈਟਿੰਗ (MI)");
+            navSettingsBtn.setText("✨ ME ਸਟੂਡੀਓ");
         } else {
             topTabPills[0].setText("Songs");
             topTabPills[1].setText("Folders");
@@ -539,7 +501,7 @@ public class MainActivity extends AppCompatActivity implements
             topTabPills[5].setText("Favorites");
             navSongsBtn.setText("🎵 Songs");
             navSearchBtn.setText("🔍 Search");
-            navSettingsBtn.setText("⚙️ MI Studio");
+            navSettingsBtn.setText("✨ ME Studio");
         }
     }
 
@@ -550,9 +512,8 @@ public class MainActivity extends AppCompatActivity implements
                 "Play Song Now (Hi-Res Studio Player)",
                 "Cut / Play Half Song (Aadha Gaana Chalayein)",
                 "Enable Free 8D Spatial Surround Audio",
-                isFav ? "Remove from Favorites" : "Add to Favorites",
-                "5-Band Dolby Equalizer & Bass Boost",
-                "Sound & Pitch Lab (Lofi / Slowed + Reverb)",
+                isFav ? "Remove from Liked (❤️)" : "Add to Liked (❤️)",
+                "5-Band Dolby Equalizer & Speed Dial",
                 "Set Custom Photo from Gallery (Save Permanently)",
                 "Set Song as Phone Ringtone",
                 "Share Song via Other Apps",
@@ -579,23 +540,22 @@ public class MainActivity extends AppCompatActivity implements
                     break;
                 case 3:
                     boolean nowFav = themeManager.toggleFavorite(song.id);
-                    Toast.makeText(this, nowFav ? "Added to Favorites" : "Removed from Favorites", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, nowFav ? "❤️ Added to Liked Songs" : "Removed from Liked Songs", Toast.LENGTH_SHORT).show();
                     syncPlayerUI();
                     break;
                 case 4:
-                case 5:
                     onOpenEqualizerAndSoundLab();
                     break;
-                case 6:
+                case 5:
                     onPickCustomPhotoForSong(song);
                     break;
-                case 7:
+                case 6:
                     AudioThreeDotStudioHelper.setSongAsPhoneRingtone(this, song);
                     break;
-                case 8:
+                case 7:
                     AudioThreeDotStudioHelper.shareSongFile(this, song);
                     break;
-                case 9:
+                case 8:
                     new AlertDialog.Builder(this)
                             .setTitle("Audio Track Details")
                             .setMessage("Title: " + song.title
@@ -606,7 +566,7 @@ public class MainActivity extends AppCompatActivity implements
                             .setPositiveButton("OK", null)
                             .show();
                     break;
-                case 10:
+                case 9:
                     onDeleteSongPermanently(song);
                     break;
             }
@@ -620,13 +580,13 @@ public class MainActivity extends AppCompatActivity implements
                 "Sort: Artist / Singer Name",
                 "Sort: Longest Duration Songs",
                 "Sort: Largest File Size",
+                "🦁 Choose 15 Cute Baby Animals & 15 Colors",
                 "🎧 Toggle 8D Spatial Surround Audio (Free Pro)",
                 "🎼 Switch 432Hz / 528Hz Frequency Tuner (Free Pro)",
-                "🐶 Open Cute Puppy Studio (7 Puppies & 15 Colors)",
-                "Open 5-Band Dolby Equalizer & Bass Boost",
-                "Choose 20+ Studio Themes & Gallery Wallpaper"
+                "🎚️ Open Buttonless Equalizer & Speed/Timer Dial",
+                "🎨 Choose 20+ Studio Themes & Gallery Wallpaper"
         };
-        SongAdapter.showPureWhiteAudioMenuDialog(this, "Audio Studio Tools & Sort", items, which -> {
+        SongAdapter.showPureWhiteAudioMenuDialog(this, "Hybrid Studio Tools & Sort", items, which -> {
             if (which == 0) {
                 Collections.sort(displayedSongs, (a, b) -> Long.compare(b.dateAdded, a.dateAdded));
                 refreshMainListAdapter();
@@ -643,11 +603,11 @@ public class MainActivity extends AppCompatActivity implements
                 Collections.sort(displayedSongs, (a, b) -> Long.compare(b.size, a.size));
                 refreshMainListAdapter();
             } else if (which == 5) {
-                onToggle8DSpatialAudio();
-            } else if (which == 6) {
-                onCycleFrequencyTuning();
-            } else if (which == 7) {
                 SettingsSectionHelper.showCutePuppyStudioFolderDialog(this, themeManager, this);
+            } else if (which == 6) {
+                onToggle8DSpatialAudio();
+            } else if (which == 7) {
+                onCycleFrequencyTuning();
             } else if (which == 8) {
                 onOpenEqualizerAndSoundLab();
             } else if (which == 9) {
@@ -674,8 +634,11 @@ public class MainActivity extends AppCompatActivity implements
         SongItem cur = getCurrentSong();
         if (cur != null) {
             boolean fav = themeManager.toggleFavorite(cur.id);
+            fpFavoriteHeartBtn.animate().scaleX(1.3f).scaleY(1.3f).setDuration(120)
+                    .withEndAction(() -> fpFavoriteHeartBtn.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start())
+                    .start();
             syncPlayerUI();
-            Toast.makeText(this, fav ? "Added to Favorite Songs" : "Removed from Favorite Songs", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, fav ? "❤️ Liked Song!" : "Removed from Liked", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -755,15 +718,12 @@ public class MainActivity extends AppCompatActivity implements
         if (newMode == 0) {
             musicService.setShuffle(true);
             musicService.setRepeatMode(0);
-            Toast.makeText(this, "Shuffle Play Active", Toast.LENGTH_SHORT).show();
         } else if (newMode == 1) {
             musicService.setShuffle(false);
             musicService.setRepeatMode(1);
-            Toast.makeText(this, "Repeat Current Song Active", Toast.LENGTH_SHORT).show();
         } else {
             musicService.setShuffle(false);
             musicService.setRepeatMode(0);
-            Toast.makeText(this, "Loop All Songs Active", Toast.LENGTH_SHORT).show();
         }
         syncPlayerUI();
     }
@@ -773,7 +733,7 @@ public class MainActivity extends AppCompatActivity implements
         if (musicService != null) {
             abRepeatLabel = musicService.cycleABRepeat();
             refreshBottomSwappableButtons();
-            Toast.makeText(this, "Repeat Mode: " + abRepeatLabel, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "A-B Loop: " + abRepeatLabel, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -823,7 +783,7 @@ public class MainActivity extends AppCompatActivity implements
     public void onSwapBottomControlsOrder() {
         themeManager.rotateBottomControlOrder();
         refreshBottomSwappableButtons();
-        Toast.makeText(this, "Bottom 4 Controls Order Swapped!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Studio Controls Order Swapped!", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -1040,8 +1000,9 @@ public class MainActivity extends AppCompatActivity implements
                 if (musicService != null && position >= 0 && position < displayedSongs.size()) {
                     musicService.setQueue(displayedSongs, position);
                     floatingGuddaView.setPlayingState(true);
+                    floatingGuddaView.triggerGravityJump();
                     syncPlayerUI();
-                    Toast.makeText(MainActivity.this, "🐶 2s Hold: Playing " + song.title, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "🦁 2s Hold: Playing " + song.title, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -1057,7 +1018,6 @@ public class MainActivity extends AppCompatActivity implements
         container.removeAllViews();
 
         topHeaderBar.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
-        subShuffleHeaderRow.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
 
         navSongsBtn.setTextColor(sectionIndex == 0 ? Color.WHITE : Color.parseColor("#94A3B8"));
         navSearchBtn.setTextColor(sectionIndex == 1 ? Color.WHITE : Color.parseColor("#94A3B8"));
@@ -1073,14 +1033,13 @@ public class MainActivity extends AppCompatActivity implements
                     this, themeManager, pocketShakeManager, currentDisplayVolumePercent, this);
         }
 
-        // Smooth Fade + Slide-In Transition when switching bottom tabs
         targetView.setAlpha(0f);
-        targetView.setTranslationY(28f);
+        targetView.setTranslationY(24f);
         container.addView(targetView);
         targetView.animate()
                 .alpha(1f)
                 .translationY(0f)
-                .setDuration(220)
+                .setDuration(200)
                 .setInterpolator(new DecelerateInterpolator())
                 .start();
 
@@ -1136,6 +1095,7 @@ public class MainActivity extends AppCompatActivity implements
     }
     @Override public void onPuppyOrLanguageUpdated() {
         floatingGuddaView.refreshFromThemeManager();
+        floatingGuddaView.triggerGravityJump();
         applyLanguageLabels();
         applyActiveThemeEverywhere();
         if (currentBottomTab == 2) {
@@ -1173,7 +1133,7 @@ public class MainActivity extends AppCompatActivity implements
             fullPlayerOverlay.animate()
                     .alpha(1f)
                     .translationY(0f)
-                    .setDuration(260)
+                    .setDuration(240)
                     .setInterpolator(new DecelerateInterpolator())
                     .start();
         }
@@ -1186,7 +1146,7 @@ public class MainActivity extends AppCompatActivity implements
         fullPlayerOverlay.animate()
                 .alpha(0f)
                 .translationY(120f)
-                .setDuration(200)
+                .setDuration(190)
                 .withEndAction(() -> {
                     fullPlayerOverlay.setVisibility(View.GONE);
                     fullPlayerOverlay.setAlpha(1f);
@@ -1238,14 +1198,14 @@ public class MainActivity extends AppCompatActivity implements
         fpAlbumArtDiscView.setLyricsPageSelected(true);
         if (musicService != null && musicService.getCurrentSong() != null) {
             SongItem s = musicService.getCurrentSong();
-            fpLyricsFavBtn.setText(themeManager.isFavorite(s.id) ? "Favorited" : "Favorite");
+            fpLyricsFavBtn.setText(themeManager.isFavorite(s.id) ? "❤️ Liked" : "♡ Like");
             String saved = themeManager.getSavedLyrics(s.id);
             if (saved != null && !saved.isEmpty()) {
                 fpLyricsText.setText(saved);
             } else if (autoSearchIfEmpty) {
                 fetchOnlineLyricsForCurrentSong();
             } else {
-                fpLyricsText.setText(s.title + "\n" + s.artist + "\n\nTap 'Find Online' below to search lyrics.");
+                fpLyricsText.setText("🎵 " + s.title + "\n" + s.artist + "\n\nTap 'Sync Online' below to load studio lyrics.");
             }
         }
     }
@@ -1253,7 +1213,7 @@ public class MainActivity extends AppCompatActivity implements
     private void fetchOnlineLyricsForCurrentSong() {
         if (musicService == null || musicService.getCurrentSong() == null) return;
         final SongItem song = musicService.getCurrentSong();
-        fpLyricsText.setText("Searching lyrics online for:\n" + song.title + "...");
+        fpLyricsText.setText("✨ Syncing studio lyrics online for:\n" + song.title + "...");
 
         new Thread(() -> {
             String resultLyrics = null;
@@ -1280,7 +1240,7 @@ public class MainActivity extends AppCompatActivity implements
 
             final String finalLyrics = (resultLyrics != null && !resultLyrics.trim().isEmpty())
                     ? resultLyrics
-                    : song.title + "\nSinger: " + song.artist + "\n\n(No online lyrics found for this track)";
+                    : "🎵 " + song.title + "\n" + song.artist + "\n\n(No online lyrics found for this track)";
 
             if (resultLyrics != null && !resultLyrics.trim().isEmpty()) {
                 themeManager.saveCustomLyrics(song.id, resultLyrics);
@@ -1289,20 +1249,37 @@ public class MainActivity extends AppCompatActivity implements
         }).start();
     }
 
+    /**
+     * Redesigned Studio Pills with Real Embedded Vector Icons (Spectrum, Loop, Speedometer, Sandglass)!
+     */
     private void refreshBottomSwappableButtons() {
         float d = getResources().getDisplayMetrics().density;
         int[] order = themeManager.getBottomControlOrder();
         float spd = musicService != null ? musicService.getPlaybackSpeed() : 1.0f;
-        String speedLabel = String.format(Locale.US, "⚡ %.1fx", spd);
-        String eqLabel = is8DSpatialAudioActive() ? "🎧 8D ON" : "🎚 Equali";
-        String[] labels = {"🕒 Timer", "🔁 " + abRepeatLabel, eqLabel, speedLabel};
+        int remMins = musicService != null ? musicService.getRemainingSleepMinutes() : 0;
 
+        String timerLabel = remMins > 0 ? remMins + "m" : "Timer";
+        String speedLabel = String.format(Locale.US, "%.1fx", spd);
+        String eqLabel = is8DSpatialAudioActive() ? "8D ON" : "Equali";
+
+        String[] labels = {timerLabel, abRepeatLabel, eqLabel, speedLabel};
+        String[] iconTypes = {"TIMER", "AB_REPEAT", "EQUALIZER", "SPEED_GAUGE"};
+
+        int iconPx = (int) (14 * d);
         for (int slot = 0; slot < 4; slot++) {
             final int currentSlot = slot;
             final int actionType = order[currentSlot];
+
+            AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable vecIcon =
+                    new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable(iconTypes[actionType], d * 0.75f);
+            vecIcon.setBounds(0, 0, iconPx, iconPx);
+
+            bottomSlotBtns[currentSlot].setCompoundDrawables(vecIcon, null, null, null);
+            bottomSlotBtns[currentSlot].setCompoundDrawablePadding((int) (4 * d));
             bottomSlotBtns[currentSlot].setText(labels[actionType]);
             bottomSlotBtns[currentSlot].setTextColor(Color.WHITE);
             bottomSlotBtns[currentSlot].setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
+
             AudioThreeDotStudioHelper.attachBouncySpring(bottomSlotBtns[currentSlot], () -> {
                 if (musicService == null) return;
                 if (actionType == 1) {
@@ -1371,20 +1348,8 @@ public class MainActivity extends AppCompatActivity implements
         appTitleText.setText(themeManager.getHeaderTitle() + " " + themeManager.getHeaderStar());
         appTitleText.setTextColor(Color.WHITE);
 
-        profileThemeButton.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("EQUALIZER", d));
-        profileThemeButton.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
-
         topSortMenuBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("THREE_DOTS", d));
         topSortMenuBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
-
-        GradientDrawable shufflePill = new GradientDrawable();
-        shufflePill.setColor(Color.WHITE);
-        shufflePill.setCornerRadius(18f * d);
-        playShuffleAllBtn.setBackground(shufflePill);
-        playShuffleAllBtn.setTextColor(Color.parseColor("#0A0A10"));
-
-        randomPlayBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
-        randomPlayBtn.setTextColor(Color.WHITE);
 
         GradientDrawable miniBg = new GradientDrawable();
         miniBg.setColor(Color.parseColor("#121C2E"));
@@ -1398,24 +1363,27 @@ public class MainActivity extends AppCompatActivity implements
         miniNextBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("NEXT", d));
         miniNextBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
-        miniThreeDotBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("THREE_DOTS", d));
-        miniThreeDotBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
-
         fpCloseBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("DOWN_ARROW", d));
         fpCloseBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
-
-        fpTopEqualizerBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("EQUALIZER", d));
-        fpTopEqualizerBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
         fpThreeDotBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("THREE_DOTS", d));
         fpThreeDotBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
         fpFavoriteHeartBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
         fpQuickLyricsBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
-        fpQuickLyricsBtn.setTextColor(Color.WHITE);
 
-        fpShuffleBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("SHUFFLE", d));
-        fpShuffleBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
+        // Style Redesigned Lyrics Studio Glass Card
+        GradientDrawable lyricsCardBg = new GradientDrawable();
+        lyricsCardBg.setColor(Color.parseColor("#EE090E18"));
+        lyricsCardBg.setCornerRadius(26f * d);
+        lyricsCardBg.setStroke(Math.max(2, (int) (1.6f * d)), Color.WHITE);
+        fpLyricsContainer.setBackground(lyricsCardBg);
+
+        GradientDrawable syncBtnBg = new GradientDrawable();
+        syncBtnBg.setColor(Color.WHITE);
+        syncBtnBg.setCornerRadius(16f * d);
+        fpFindLyricsOnlineBtn.setBackground(syncBtnBg);
+        fpBackToArtBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
 
         fpPrevBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("PREV", d));
         fpPrevBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
@@ -1428,8 +1396,6 @@ public class MainActivity extends AppCompatActivity implements
 
         fpNextBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("NEXT", d));
         fpNextBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
-
-        fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
         fpPocketShakeBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
         fpPocketShakeBtn.setTextColor(Color.WHITE);
@@ -1489,10 +1455,33 @@ public class MainActivity extends AppCompatActivity implements
         miniPlayPauseBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
         fpPlayPauseBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable(playIconType, d));
 
-        int rep = musicService.getRepeatMode();
-        String repType = (rep == 1) ? "REPEAT_ONE" : "REPEAT_ALL";
-        fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable(repType, d));
+        // 1. SHUFFLE VISUAL TRANSFORMATION: Solid White Circle + Dark Icon when ON vs Dark Glass when OFF!
+        boolean shufOn = musicService.isShuffle();
+        if (shufOn) {
+            fpShuffleBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
+            fpShuffleBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("SHUFFLE_ON_DARK", d));
+        } else {
+            fpShuffleBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
+            fpShuffleBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("SHUFFLE", d));
+        }
 
+        // 2. REPEAT VISUAL TRANSFORMATION: Repeat 1 ('1' Badge), Loop All (Solid White), Repeat Off (Slash)!
+        int rep = musicService.getRepeatMode();
+        if (rep == 1) {
+            // Repeat Current Song (1)
+            fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
+            fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_ONE_DARK", d));
+        } else if (rep == 0) {
+            // Loop All Songs
+            fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
+            fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_ALL_DARK", d));
+        } else {
+            // Repeat OFF
+            fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
+            fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_OFF", d));
+        }
+
+        // 3. REAL BEZIER HEART (Dil ❤️) LIKE BUTTON
         boolean fav = isFavoriteSong();
         fpFavoriteHeartBtn.setImageDrawable(
                 new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable(fav ? "HEART_ON" : "HEART_OFF", d));
