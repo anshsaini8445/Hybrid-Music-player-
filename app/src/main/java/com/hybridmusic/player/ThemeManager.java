@@ -23,7 +23,6 @@ public class ThemeManager {
     private static final String KEY_BOTTOM_ORDER = "bottom_icon_order";
     private static final String KEY_DJ_SLOW_FADE = "dj_slow_fade";
 
-    // New Keys for Cute Puppy Folder, 15 Colors, Language Folder, VIP Plan & Privacy Link
     private static final String KEY_PUPPY_BREED = "puppy_breed_index";
     private static final String KEY_PUPPY_COLOR = "puppy_color_index";
     private static final String KEY_APP_LANGUAGE = "app_language_code";
@@ -49,7 +48,7 @@ public class ThemeManager {
     }
 
     private static final ThemePreset[] THEMES = new ThemePreset[]{
-            new ThemePreset("1. Muso Cyber Neon", "#080C14", "#121A28", "#1A2436", "#00E5FF", "#FF2E93"),
+            new ThemePreset("1. Muso Cyber Neon", "#070B12", "#101724", "#182234", "#00E5FF", "#FF2E93"),
             new ThemePreset("2. PLAYit Royal Gold", "#0F0C08", "#1C160E", "#292014", "#FFD700", "#FF8C00"),
             new ThemePreset("3. AMOLED Pitch Black", "#000000", "#0D0D0D", "#1A1A1A", "#00FF87", "#00B8FF"),
             new ThemePreset("4. Crimson Velvet", "#1A070D", "#2B0C16", "#3D1220", "#FF3366", "#FF99AC"),
@@ -71,31 +70,39 @@ public class ThemeManager {
             new ThemePreset("20. Mint Daylight Breeze", "#F0FDF4", "#FFFFFF", "#DCFCE7", "#059669", "#0284C7")
     };
 
-    // 7 Super-Cute Puppy Types
+    // 15 Cute Worldwide Baby Animals (Standing Cutely with Raised Paw)
     public static final String[] PUPPY_BREED_NAMES = new String[]{
-            "1. 🐶 Golden Cutie DJ Pup",
-            "2. 🐺 Snowy Husky Star Pup",
-            "3. 🐼 Fluffy Chibi Panda Pup",
-            "4. 🦊 Cyber Neon Shiba Pup",
-            "5. 👑 Royal Crown Pug DJ",
-            "6. 🐰 Bouncy Bunny-Ear Pup",
-            "7. 🚀 Astro Space Halo Pup"
+            "1. 🦁 Cute Lion Cub (Sher Ka Baccha)",
+            "2. 🐧 Baby Emperor Penguin (Cute Tuxedo)",
+            "3. 🐻‍❄️ Snowy White Polar Cub (Arctic Cutie)",
+            "4. 🦊 American Red Panda Cub (Fluffy Tail)",
+            "5. 🐯 Royal Baby Tiger Cub (Standing)",
+            "6. 🐨 Cute Koala Joey (Fluffy Ears)",
+            "7. 🐼 Chibi Giant Panda Cub (Snow & Black)",
+            "8. 🦦 Baby Sea Otter (Holding Star)",
+            "9. 🐕 White Samoyed Cloud Puppy",
+            "10. 🐰 Fluffy White Snow Bunny",
+            "11. 🦉 Baby Snowy Owl Chick (Big Eyes)",
+            "12. 🐆 Baby Snow Leopard Cub",
+            "13. 🐿️ Cute American Chipmunk",
+            "14. 🦊 Desert Fennec Fox (Big Ears)",
+            "15. 🐶 Golden Retriever Baby Pup"
     };
 
-    // 15 Vibrant Puppy Coat Colors
+    // 15 Vibrant Coat Colours
     public static final String[] PUPPY_COLOR_NAMES = new String[]{
-            "1. Golden Honey", "2. Pure Snow White", "3. Sakura Pink", "4. Cyber Cyan",
-            "5. Sunset Orange", "6. Lavender Magic", "7. Mint Cream", "8. Caramel Brown",
-            "9. Strawberry Red", "10. Sky Blue", "11. Lemon Glow", "12. Peach Rose",
+            "1. Pure Snow White", "2. Lion Golden Honey", "3. Penguin Ice Blue", "4. Sakura Pink",
+            "5. Sunset Tiger Orange", "6. Cyber Neon Cyan", "7. Lavender Magic", "8. Mint Cream",
+            "9. Caramel Brown", "10. Strawberry Red", "11. Lemon Glow", "12. Peach Rose",
             "13. Neon Lime", "14. Silver Frost", "15. Royal Purple"
     };
 
     public static final int[] PUPPY_COLOR_HEX = new int[]{
-            Color.parseColor("#FBBF24"), Color.parseColor("#F8FAFC"), Color.parseColor("#F472B6"),
-            Color.parseColor("#22D3EE"), Color.parseColor("#FB923C"), Color.parseColor("#C084FC"),
-            Color.parseColor("#34D399"), Color.parseColor("#D97706"), Color.parseColor("#F87171"),
-            Color.parseColor("#60A5FA"), Color.parseColor("#FACC15"), Color.parseColor("#FDA4AF"),
-            Color.parseColor("#A3E635"), Color.parseColor("#CBD5E1"), Color.parseColor("#A855F7")
+            Color.parseColor("#FFFFFF"), Color.parseColor("#FBBF24"), Color.parseColor("#38BDF8"),
+            Color.parseColor("#F472B6"), Color.parseColor("#FB923C"), Color.parseColor("#00E5FF"),
+            Color.parseColor("#C084FC"), Color.parseColor("#34D399"), Color.parseColor("#D97706"),
+            Color.parseColor("#F87171"), Color.parseColor("#FACC15"), Color.parseColor("#FDA4AF"),
+            Color.parseColor("#A3E635"), Color.parseColor("#E2E8F0"), Color.parseColor("#A855F7")
     };
 
     private final SharedPreferences prefs;
@@ -204,9 +211,8 @@ public class ThemeManager {
         prefs.edit().putString(KEY_HEADER_STAR, starSymbol != null ? starSymbol : "★").apply();
     }
 
-    // --- Cute Puppy Breed (0..6) & 15 Colors (0..14) ---
     public int getPuppyBreedIndex() {
-        int idx = prefs.getInt(KEY_PUPPY_BREED, 0);
+        int idx = prefs.getInt(KEY_PUPPY_BREED, 0); // Default 0 = Cute Lion Cub (Sher Ka Baccha)
         if (idx < 0 || idx >= PUPPY_BREED_NAMES.length) idx = 0;
         return idx;
     }
@@ -216,7 +222,7 @@ public class ThemeManager {
     }
 
     public int getPuppyColorIndex() {
-        int idx = prefs.getInt(KEY_PUPPY_COLOR, 0);
+        int idx = prefs.getInt(KEY_PUPPY_COLOR, 1); // Default Golden Honey / White
         if (idx < 0 || idx >= PUPPY_COLOR_HEX.length) idx = 0;
         return idx;
     }
@@ -229,7 +235,6 @@ public class ThemeManager {
         return PUPPY_COLOR_HEX[getPuppyColorIndex()];
     }
 
-    // --- Language Folder Support ---
     public String getAppLanguage() {
         return prefs.getString(KEY_APP_LANGUAGE, "Hinglish");
     }
@@ -238,7 +243,6 @@ public class ThemeManager {
         prefs.edit().putString(KEY_APP_LANGUAGE, language).apply();
     }
 
-    // --- VIP Support Plan (₹50, ₹60, ₹99) ---
     public String getActiveVipPlan() {
         return prefs.getString(KEY_VIP_PLAN, "Free Studio User");
     }
@@ -247,7 +251,6 @@ public class ThemeManager {
         prefs.edit().putString(KEY_VIP_PLAN, planName).apply();
     }
 
-    // --- Song Trim / "Aadha Gana Chalana" Support ---
     public void setSongTrimSeconds(long songId, int startSec, int endSec) {
         prefs.edit()
                 .putInt("trim_start_" + songId, Math.max(0, startSec))
@@ -263,7 +266,6 @@ public class ThemeManager {
         return prefs.getInt("trim_end_" + songId, 0);
     }
 
-    // --- Editable Privacy Policy Link ---
     public String getPrivacyPolicyUrl() {
         return prefs.getString(KEY_PRIVACY_URL, "");
     }
@@ -325,17 +327,6 @@ public class ThemeManager {
         current[3] = first;
         String saved = current[0] + "," + current[1] + "," + current[2] + "," + current[3];
         prefs.edit().putString(KEY_BOTTOM_ORDER, saved).apply();
-    }
-
-    public void swapBottomControls(int posA, int posB) {
-        int[] current = getBottomControlOrder();
-        if (posA >= 0 && posA < 4 && posB >= 0 && posB < 4) {
-            int temp = current[posA];
-            current[posA] = current[posB];
-            current[posB] = temp;
-            String saved = current[0] + "," + current[1] + "," + current[2] + "," + current[3];
-            prefs.edit().putString(KEY_BOTTOM_ORDER, saved).apply();
-        }
     }
 
     public void saveCustomLyrics(long songId, String lyrics) {
