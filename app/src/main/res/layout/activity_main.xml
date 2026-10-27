@@ -3,7 +3,7 @@
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#080C14">
+    android:background="#070B12">
 
     <!-- Optional User Custom Gallery Theme Wallpaper -->
     <ImageView
@@ -19,11 +19,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- 1. SABSE UPAR TOP BRAND HEADER: "Hybrid Music Player ★" + Equalizer + 3-Dot -->
+        <!-- 1. TOP BRAND HEADER: "Hybrid Music Player ★" + Song Count + Only 3-Dot Button (Equalizer Removed!) -->
         <LinearLayout
             android:id="@+id/topBrandBar"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="14dp"
@@ -41,19 +41,30 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/totalSongsCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:singleLine="true"
+                android:text="0 Songs"
+                android:textColor="#CBD5E1"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+
+            <!-- Hidden Equalizer Button on Main Screen as Requested -->
             <ImageView
                 android:id="@+id/profileThemeButton"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginStart="6dp"
-                android:padding="8dp" />
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
+            <!-- Only 3-Dot Button Kept on Top Right -->
             <ImageView
                 android:id="@+id/topSortMenuBtn"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginStart="6dp"
-                android:padding="8dp" />
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="9dp" />
         </LinearLayout>
 
         <!-- 2. Sleek Category Tabs Row: Songs, Folders, Albums, Artists, Video-Audio, Favorites -->
@@ -69,7 +80,7 @@
             <HorizontalScrollView
                 android:id="@+id/categoryTabsScroll"
                 android:layout_width="match_parent"
-                android:layout_height="38dp"
+                android:layout_height="36dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -152,61 +163,34 @@
             </HorizontalScrollView>
         </LinearLayout>
 
-        <!-- 3. Studio Action Row: Shuffle All + Random + Song Count (Duplicate Top Puppy Hidden!) -->
+        <!-- Hidden Shuffle All & Random Row on Main Screen as Requested -->
         <LinearLayout
             android:id="@+id/subShuffleHeaderRow"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
+            android:layout_height="0dp"
             android:layout_below="@id/topHeaderBar"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp">
+            android:visibility="gone">
 
             <TextView
                 android:id="@+id/playShuffleAllBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:gravity="center"
-                android:paddingHorizontal="14dp"
-                android:text="Shuffle All"
-                android:textColor="#0A0A10"
-                android:textSize="12.5sp"
-                android:textStyle="bold" />
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/randomPlayBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:layout_marginStart="8dp"
-                android:gravity="center"
-                android:paddingHorizontal="14dp"
-                android:text="Random"
-                android:textColor="#FFFFFF"
-                android:textSize="12.5sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/totalSongsCountText"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:singleLine="true"
-                android:text="0 Songs"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
-            <!-- Hidden so only 1 Cute Puppy appears on screen -->
             <com.hybridmusic.player.DancingPuppyView
                 android:id="@+id/headerPuppyView"
-                android:layout_width="1dp"
-                android:layout_height="1dp"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- 4. COMPACT SLEEK BOTTOM NAVIGATION BAR (Smaller & Futuristic) -->
+        <!-- 3. COMPACT SLEEK BOTTOM NAVIGATION BAR (Songs, Search, ME Studio) -->
         <LinearLayout
             android:id="@+id/bottomNavBar"
             android:layout_width="match_parent"
@@ -252,14 +236,14 @@
                 android:layout_weight="1"
                 android:background="?attr/selectableItemBackground"
                 android:padding="0dp"
-                android:text="⚙️ MI Studio"
+                android:text="✨ ME Studio"
                 android:textAllCaps="false"
                 android:textColor="#CBD5E1"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 5. Compact Floating Mini-Player Bar (With 3-Dot Button) -->
+        <!-- 4. Bottom Mini-Player Bar (Single-Click Opens Full Player Immediately! 3-Dot Removed!) -->
         <LinearLayout
             android:id="@+id/miniPlayerBar"
             android:layout_width="match_parent"
@@ -267,9 +251,11 @@
             android:layout_above="@id/bottomNavBar"
             android:layout_marginHorizontal="10dp"
             android:layout_marginBottom="5dp"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingHorizontal="12dp">
 
             <ImageView
                 android:id="@+id/miniThumbnail"
@@ -278,10 +264,12 @@
                 android:scaleType="centerCrop" />
 
             <LinearLayout
+                android:id="@+id/miniTextContainer"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
+                android:gravity="center_vertical"
                 android:orientation="vertical">
 
                 <TextView
@@ -306,7 +294,7 @@
                     android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Hi-Res Studio Audio"
+                    android:text="Tap here to open Full Player"
                     android:textColor="#D8E2F0"
                     android:textSize="11.5sp"
                     android:textStyle="bold" />
@@ -314,54 +302,54 @@
 
             <ImageView
                 android:id="@+id/miniPrevBtn"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="5dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
                 android:padding="8dp" />
 
             <ImageView
                 android:id="@+id/miniPlayPauseBtn"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_marginEnd="5dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="6dp"
                 android:padding="9dp" />
 
             <ImageView
                 android:id="@+id/miniNextBtn"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="5dp"
-                android:padding="8dp" />
-
-            <ImageView
-                android:id="@+id/miniThreeDotBtn"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
                 android:padding="8dp" />
+
+            <!-- 3-Dot Completely Removed from Mini-Player as Requested -->
+            <ImageView
+                android:id="@+id/miniThreeDotBtn"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- 6. Dynamic Content Area -->
+        <!-- 5. Dynamic Content Area -->
         <FrameLayout
             android:id="@+id/mainContentContainer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_above="@id/miniPlayerBar"
-            android:layout_below="@id/subShuffleHeaderRow" />
+            android:layout_below="@id/topHeaderBar" />
     </RelativeLayout>
 
-    <!-- FULL STUDIO AUDIO PLAYER OVERLAY (10% SMALLER SLEEK CONTROLS WITH PURE-WHITE VECTOR ICONS) -->
+    <!-- FULL STUDIO AUDIO PLAYER OVERLAY -->
     <RelativeLayout
         android:id="@+id/fullPlayerOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#080C14"
+        android:background="#070B12"
         android:clickable="true"
         android:focusable="true"
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"
         android:visibility="gone">
 
-        <!-- Top Bar (10% Smaller 42dp Pure-White Vector Buttons) -->
+        <!-- Top Bar: Down Arrow + Song Title & Singer + Heart Like Button + 3-Dot Studio -->
         <LinearLayout
             android:id="@+id/fpTopBar"
             android:layout_width="match_parent"
@@ -411,7 +399,6 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Hidden so only 1 Cute Puppy appears on screen -->
             <com.hybridmusic.player.DancingPuppyView
                 android:id="@+id/fpPuppyView"
                 android:layout_width="1dp"
@@ -420,10 +407,17 @@
 
             <ImageView
                 android:id="@+id/fpTopEqualizerBtn"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- Real Heart (Dil ❤️) Like Button in Top Bar + Center Art -->
+            <ImageView
+                android:id="@+id/fpFavoriteHeartBtn"
                 android:layout_width="42dp"
                 android:layout_height="42dp"
                 android:layout_marginEnd="6dp"
-                android:padding="10dp" />
+                android:padding="9dp" />
 
             <ImageView
                 android:id="@+id/fpThreeDotBtn"
@@ -432,7 +426,7 @@
                 android:padding="10dp" />
         </LinearLayout>
 
-        <!-- Center Album Art / Rotating Vinyl Disc + Favorite Heart + Online Lyrics -->
+        <!-- Center Album Art / Rotating Vinyl Disc + Redesigned Glass Studio Lyrics Card -->
         <FrameLayout
             android:id="@+id/fpCenterArea"
             android:layout_width="match_parent"
@@ -446,14 +440,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-            <ImageView
-                android:id="@+id/fpFavoriteHeartBtn"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_gravity="bottom|start"
-                android:layout_margin="10dp"
-                android:padding="10dp" />
-
+            <!-- Redesigned Sleek Glass Lyrics Pill on Bottom-Right -->
             <TextView
                 android:id="@+id/fpQuickLyricsBtn"
                 android:layout_width="wrap_content"
@@ -461,82 +448,96 @@
                 android:layout_gravity="bottom|end"
                 android:layout_margin="10dp"
                 android:gravity="center"
-                android:paddingHorizontal="14dp"
-                android:text="Lyrics"
+                android:paddingHorizontal="15dp"
+                android:text="♪ Studio Lyrics"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
+            <!-- Redesigned Ultra-Modern Spotify/Apple Style Lyrics Studio Card -->
             <LinearLayout
                 android:id="@+id/fpLyricsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#F20A0D14"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="16dp"
                 android:visibility="gone">
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="✨ SYNCHRONIZED STUDIO LYRICS"
+                    android:textColor="#CBD5E1"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+
                 <ScrollView
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="1">
+                    android:layout_weight="1"
+                    android:scrollbars="none">
 
                     <TextView
                         android:id="@+id/fpLyricsText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
-                        android:lineSpacingExtra="6dp"
-                        android:text="Tap Find Online Lyrics..."
+                        android:lineSpacingExtra="8dp"
+                        android:padding="8dp"
+                        android:text="Tap Sync Online Lyrics below..."
                         android:textColor="#FFFFFF"
-                        android:textSize="15sp"
+                        android:textSize="16.5sp"
                         android:textStyle="bold" />
                 </ScrollView>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:gravity="center"
                     android:orientation="horizontal">
 
-                    <Button
+                    <TextView
                         android:id="@+id/fpFindLyricsOnlineBtn"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginEnd="8dp"
-                        android:backgroundTint="#FFFFFF"
-                        android:text="Find Online"
-                        android:textColor="#000000"
-                        android:textSize="11.5sp"
+                        android:gravity="center"
+                        android:paddingHorizontal="16dp"
+                        android:text="🌐 Sync Online"
+                        android:textColor="#0A0A10"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
 
                     <Button
                         android:id="@+id/fpLyricsFavBtn"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginEnd="8dp"
                         android:backgroundTint="#1E293B"
-                        android:text="Favorite"
+                        android:text="♥ Like"
+                        android:textAllCaps="false"
                         android:textColor="#FFFFFF"
                         android:textSize="11.5sp"
                         android:textStyle="bold" />
 
-                    <Button
+                    <TextView
                         android:id="@+id/fpBackToArtBtn"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
-                        android:backgroundTint="#334155"
-                        android:text="Art"
+                        android:layout_height="36dp"
+                        android:gravity="center"
+                        android:paddingHorizontal="16dp"
+                        android:text="Cover Art ↩"
                         android:textColor="#FFFFFF"
-                        android:textSize="11.5sp"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Quick Studio Pills Row Above Waveform (10% Smaller 34dp Height + Pure-White Vector Icons) -->
+        <!-- Redesigned Studio Components Row (With Real Vector Icons for Equali, A-B, 1.0x Speed, Timer) -->
         <LinearLayout
             android:id="@+id/fpBottomSwappableRow"
             android:layout_width="match_parent"
@@ -552,7 +553,7 @@
                 android:layout_marginEnd="5dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:singleLine="true"
                 android:text="Equali"
                 android:textColor="#FFFFFF"
@@ -566,7 +567,7 @@
                 android:layout_marginEnd="5dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:singleLine="true"
                 android:text="A-B"
                 android:textColor="#FFFFFF"
@@ -580,7 +581,7 @@
                 android:layout_marginEnd="5dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:singleLine="true"
                 android:text="1.0x"
                 android:textColor="#FFFFFF"
@@ -593,7 +594,7 @@
                 android:layout_height="34dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:singleLine="true"
                 android:text="Timer"
                 android:textColor="#FFFFFF"
@@ -642,7 +643,7 @@
                 android:layout_height="42dp" />
         </LinearLayout>
 
-        <!-- SLEEK 10% SMALLER PURE-WHITE TRANSPORT ROW (46dp / 52dp / 66dp) -->
+        <!-- SLEEK TRANSPORT ROW (Shuffle & Repeat Transform Completely When Toggled!) -->
         <LinearLayout
             android:id="@+id/fpMainControlsRow"
             android:layout_width="match_parent"
@@ -686,7 +687,7 @@
                 android:padding="11dp" />
         </LinearLayout>
 
-        <!-- Sleek 10% Smaller Bottom Dock Bar: Pocket Shake + Playing Queue + Bottom 3-Dot ("⋮") -->
+        <!-- Bottom Dock Bar: Pocket Shake + Playing Queue + Bottom 3-Dot ("⋮") -->
         <LinearLayout
             android:id="@+id/fpBottomFooterRow"
             android:layout_width="match_parent"
@@ -784,14 +785,14 @@
         </FrameLayout>
     </RelativeLayout>
 
-    <!-- THE SINGLE SUPER-CUTE FLOATING MUSO PUPPY (Only 1 Puppy on Screen!) -->
+    <!-- THE SINGLE LARGER SUPER-CUTE MASCOT WITH REAL GRAVITY PHYSICS (84dp x 84dp!) -->
     <com.hybridmusic.player.DancingPuppyView
         android:id="@+id/floatingGuddaView"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="84dp"
+        android:layout_height="84dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="14dp"
-        android:layout_marginBottom="125dp" />
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="118dp" />
 
     <!-- SCREENSHOT (1000061267.jpg) TOP VOLUME BANNER PATTI (80% + White Bar + 4 Dots) -->
     <com.hybridmusic.player.VolumeBannerView
