@@ -2,7 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#0D141E">
+    android:background="@android:color/transparent"
+    android:scrollbars="none">
 
     <LinearLayout
         android:id="@+id/eqDialogRoot"
@@ -11,401 +12,315 @@
         android:orientation="vertical"
         android:padding="18dp">
 
-        <!-- Top Header with Close (X) Button like Screenshot 3 -->
+        <!-- Top Studio Header (No Ugly Cross 'X', Uses Sleek 3-Dot '⋮' Pill) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingBottom="10dp">
+            android:paddingBottom="12dp">
 
-            <TextView
-                android:id="@+id/dialogTitle"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Sound &amp; Pitch Lab • 5-Band Dolby EQ"
-                android:textColor="#00E5FF"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/dialogTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HI-RES ACOUSTIC STUDIO"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Pure Buttonless Equalizer • Speed Dial • Smart Timer"
+                    android:textColor="#94A3B8"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/closeDialogTopBtn"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:background="#1E293B"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
                 android:gravity="center"
-                android:text="✕"
+                android:text="⋮"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- SECTION 1: SOUND & PITCH LAB (LOFI / SLOWED + REVERB) -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="🎛️ Sound &amp; Pitch Lab (Lofi / Slowed + Reverb)"
-            android:textColor="#FFD700"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
+        <!-- CARD 1: BUTTONLESS 5-BAND DOLBY EQUALIZER & SUB-BASS -->
         <LinearLayout
+            android:id="@+id/eqCardContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="8dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/lofiNormalBtn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="Original"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/lofiSlowedReverbBtn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:backgroundTint="#00E5FF"
-                android:text="Slowed+Reverb"
-                android:textColor="#000000"
-                android:textSize="9sp" />
-
-            <Button
-                android:id="@+id/lofiChillBtn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="Lofi Chill"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/lofiNightcoreBtn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="Nightcore"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- Smooth Playback Speed Slider -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginBottom="12dp"
+            android:orientation="vertical"
+            android:padding="14dp">
 
             <TextView
-                android:id="@+id/speedTextValue"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Playback Speed: 1.00x"
-                android:textColor="#00E5FF"
+                android:layout_marginBottom="10dp"
+                android:text="🎚️ 5-BAND MASTER SPECTRUM (LIVE dB)"
+                android:textColor="#FFFFFF"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+
+            <!-- Band 1: 60Hz -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="78dp"
+                    android:layout_height="wrap_content"
+                    android:text="60Hz Sub"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <SeekBar
+                    android:id="@+id/eqBand1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="50" />
+                <TextView
+                    android:id="@+id/eqVal1"
+                    android:layout_width="42dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:text="0 dB"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Band 2: 230Hz -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="78dp"
+                    android:layout_height="wrap_content"
+                    android:text="230Hz Punch"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <SeekBar
+                    android:id="@+id/eqBand2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="50" />
+                <TextView
+                    android:id="@+id/eqVal2"
+                    android:layout_width="42dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:text="0 dB"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Band 3: 910Hz -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="78dp"
+                    android:layout_height="wrap_content"
+                    android:text="910Hz Vocal"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <SeekBar
+                    android:id="@+id/eqBand3"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="50" />
+                <TextView
+                    android:id="@+id/eqVal3"
+                    android:layout_width="42dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:text="0 dB"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Band 4: 3.6kHz -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="78dp"
+                    android:layout_height="wrap_content"
+                    android:text="3.6kHz Crisp"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <SeekBar
+                    android:id="@+id/eqBand4"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="50" />
+                <TextView
+                    android:id="@+id/eqVal4"
+                    android:layout_width="42dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:text="0 dB"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Band 5: 14kHz -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="78dp"
+                    android:layout_height="wrap_content"
+                    android:text="14kHz Air"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+                <SeekBar
+                    android:id="@+id/eqBand5"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="50" />
+                <TextView
+                    android:id="@+id/eqVal5"
+                    android:layout_width="42dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:text="0 dB"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Sub-Woofer Analog Bass Boost Slider -->
+            <TextView
+                android:id="@+id/bassTextValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="🔊 Sub-Woofer Deep Bass: 0%"
+                android:textColor="#FFFFFF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/resetSpeedBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:backgroundTint="#1E293B"
-                android:text="Reset 1.0x"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
+            <SeekBar
+                android:id="@+id/bassBoostSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="0" />
         </LinearLayout>
 
-        <SeekBar
-            android:id="@+id/speedSeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="50"
-            android:progress="12" />
-
-        <!-- Real Audio Pitch Slider (0.50x Deep to 2.00x High) -->
-        <TextView
-            android:id="@+id/pitchTextValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Voice Pitch Shift: 1.00x (Normal)"
-            android:textColor="#FF2E93"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <SeekBar
-            android:id="@+id/pitchSeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:max="30"
-            android:progress="10" />
-
-        <!-- SECTION 2: 5-BAND DOLBY EQUALIZER & BASS BOOST -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="🎚️ 5-Band Dolby Equalizer &amp; Sub-Woofer Bass"
-            android:textColor="#00E5FF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
+        <!-- CARD 2: MODERN SPEEDOMETER DIAL & LOFI PITCH / REVERB -->
         <LinearLayout
+            android:id="@+id/speedCardContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="6dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/presetFlatBtn"
-                android:layout_width="0dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="Flat"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/presetBassBtn"
-                android:layout_width="0dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="Dolby Bass"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/presetDjBtn"
-                android:layout_width="0dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="DJ Club"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/presetVocalBtn"
-                android:layout_width="0dp"
-                android:layout_height="34dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="HD Vocal"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="60Hz (Deep Sub-Bass)"
-            android:textColor="#CBD5E1"
-            android:textSize="11sp" />
-        <SeekBar
-            android:id="@+id/eqBand1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"
-            android:progress="50" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="230Hz (Warm Punch)"
-            android:textColor="#CBD5E1"
-            android:textSize="11sp" />
-        <SeekBar
-            android:id="@+id/eqBand2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"
-            android:progress="50" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="910Hz (Mid Clarity)"
-            android:textColor="#CBD5E1"
-            android:textSize="11sp" />
-        <SeekBar
-            android:id="@+id/eqBand3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"
-            android:progress="50" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="3.6kHz (Treble Sparkle)"
-            android:textColor="#CBD5E1"
-            android:textSize="11sp" />
-        <SeekBar
-            android:id="@+id/eqBand4"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"
-            android:progress="50" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="14kHz (Dolby Air HD)"
-            android:textColor="#CBD5E1"
-            android:textSize="11sp" />
-        <SeekBar
-            android:id="@+id/eqBand5"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"
-            android:progress="50" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Sub-Woofer Bass Boost"
-            android:textColor="#00E5FF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-        <SeekBar
-            android:id="@+id/bassBoostSeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:max="100"
-            android:progress="0" />
-
-        <!-- SECTION 3: SMART SLEEP TIMER (15m, 30m, 60m, 90m + CUSTOM MINUTES) -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🕒 Smart Sleep Timer (Preset + Custom Minutes)"
-            android:textColor="#FFD700"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/timerOffBtn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="3dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="Off"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/timer15Btn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="3dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="15m"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/timer30Btn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="3dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="30m"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/timer60Btn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="3dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="60m"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/timer90Btn"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:backgroundTint="#1E293B"
-                android:text="90m"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
             android:layout_marginBottom="12dp"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:padding="14dp">
 
-            <EditText
-                android:id="@+id/customMinuteInput"
-                android:layout_width="0dp"
-                android:layout_height="42dp"
-                android:layout_weight="1"
-                android:background="#1E293B"
-                android:hint="Custom mins (e.g. 2, 5, 75, 80)"
-                android:inputType="number"
-                android:paddingHorizontal="10dp"
+            <TextView
+                android:id="@+id/speedTextValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚡ Tempo Speed Dial: 1.00x (Normal Studio)"
                 android:textColor="#FFFFFF"
-                android:textColorHint="#94A3B8"
-                android:textSize="13sp" />
-
-            <Button
-                android:id="@+id/setCustomTimerButton"
-                android:layout_width="wrap_content"
-                android:layout_height="42dp"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="#00E5FF"
-                android:text="Set Timer"
-                android:textColor="#000000"
+                android:textSize="12.5sp"
                 android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/speedSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:max="50"
+                android:progress="12" />
+
+            <TextView
+                android:id="@+id/pitchTextValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="🎛️ Lofi Pitch &amp; Hall Reverb: 1.00x"
+                android:textColor="#FFFFFF"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/pitchSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:max="30"
+                android:progress="10" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/closeDialogBtn"
+        <!-- CARD 3: MODERN SLEEP TIMER DIAL (SLIDE ANY MINUTE: 0m to 120m) -->
+        <LinearLayout
+            android:id="@+id/timerCardContainer"
             android:layout_width="match_parent"
-            android:layout_height="42dp"
-            android:backgroundTint="#1E293B"
-            android:text="Done / Close"
-            android:textColor="#00E5FF"
-            android:textStyle="bold" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:id="@+id/timerTextValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⏳ Smart Sleep Timer Dial: OFF (Slide to Set Minutes)"
+                android:textColor="#FFFFFF"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/timerSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:max="120"
+                android:progress="0" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
