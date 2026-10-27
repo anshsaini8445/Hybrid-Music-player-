@@ -54,8 +54,13 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private float userSpeed = 1.0f;
     private float userPitch = 1.0f;
     private int reverbPresetIndex = 0;
-    private int extraBoostPercent = 0; // 0 to 100 (for 100% -> 200% 4-Dot Volume Boost)
+    private int extraBoostPercent = 0;
     private boolean djSlowFadeEnabled = true;
+
+    // NEW PRO FEATURES: 8D Spatial Surround Audio + 432Hz/528Hz Frequency Tuning
+    private boolean spatial8DAudioEnabled = false;
+    private float spatial8DAngle = 0f;
+    private int frequencyTuningMode = 0; // 0 = 440Hz Standard, 1 = 432Hz Crystal, 2 = 528Hz Miracle
 
     private int pointAMs = -1;
     private int pointBMs = -1;
@@ -82,14 +87,28 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                     seekTo(pointAMs);
                 }
 
+                // Calculate base fade factor for 10-Second DJ Slow Fade
+                float baseVol = 1.0f;
                 if (djSlowFadeEnabled && dur > 15000 && pos >= dur - 10000) {
                     float remainingSec = Math.max(0.1f, (dur - pos) / 1000f);
-                    float factor = Math.max(0.35f, Math.min(1.0f, remainingSec / 10.0f));
-                    mediaPlayer.setVolume(factor, factor);
-                    applySpeedAndPitch(Math.max(0.75f, userSpeed * (0.75f + 0.25f * factor)), userPitch);
+                    baseVol = Math.max(0.35f, Math.min(1.0f, remainingSec / 10.0f));
+                    applySpeedAndPitch(Math.max(0.75f, userSpeed * (0.75f + 0.25f * baseVol)), getEffectivePitch());
                 } else {
-                    mediaPlayer.setVolume(1.0f, 1.0f);
-                    applySpeedAndPitch(userSpeed, userPitch);
+                    applySpeedAndPitch(userSpeed, getEffectivePitch());
+                }
+
+                // Real 8D Spatial Surround Rotating Panning (360-degree Left/Right Audio Rotation)
+                if (spatial8DAudioEnabled) {
+                    spatial8DAngle += 0.085f;
+                    float pan = (float) Math.sin(spatial8DAngle); // -1.0 (Left) to +1.0 (Right)
+                    float depth = 0.82f + 0.18f * (float) Math.cos(spatial8DAngle * 0.5f);
+                    float leftVol = baseVol * depth * (pan <= 0f ? 1.0f : (1.0f - 0.78f * pan));
+                    float rightVol = baseVol * depth * (pan >= 0f ? 1.0f : (1.0f + 0.78f * pan));
+                    mediaPlayer.setVolume(
+                            Math.max(0.05f, Math.min(1.0f, leftVol)),
+                            Math.max(0.05f, Math.min(1.0f, rightVol)));
+                } else {
+                    mediaPlayer.setVolume(baseVol, baseVol);
                 }
 
                 if (sleepTimerEndMs > 0 && System.currentTimeMillis() >= sleepTimerEndMs) {
@@ -97,9 +116,19 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                     pausePlaybackAndClearOngoing();
                 }
             }
-            handler.postDelayed(this, 400);
+            handler.postDelayed(this, 85); // Fast 85ms tick for smooth 8D audio rotation!
         }
     };
+
+    private float getEffectivePitch() {
+        float freqRatio = 1.0f;
+        if (frequencyTuningMode == 1) {
+            freqRatio = 432.0f / 440.0f; // 0.9818f (432Hz Natural Warm Tuning)
+        } else if (frequencyTuningMode == 2) {
+            freqRatio = 528.0f / 440.0f; // 1.20f (528Hz Bright Harmonic Tuning)
+        }
+        return Math.max(0.5f, Math.min(2.0f, userPitch * freqRatio));
+    }
 
     @Override
     public void onCreate() {
@@ -194,12 +223,47 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         }
     }
 
+    public void set8DSpatialAudioEnabled(boolean enabled) {
+        this.spatial8DAudioEnabled = enabled;
+        if (enabled) {
+            applyReverbPreset(2); // Add subtle Medium Hall depth for 8D surround feel
+        } else if (mediaPlayer != null) {
+            try {
+                mediaPlayer.setVolume(1.0f, 1.0f);
+            } catch (Exception ignored) {
+            }
+        }
+        notifyUI();
+    }
+
+    public boolean is8DSpatialAudioEnabled() {
+        return spatial8DAudioEnabled;
+    }
+
+    public void cycleFrequencyTuningMode() {
+        this.frequencyTuningMode = (this.frequencyTuningMode + 1) % 3;
+        if (isPlaying()) {
+            applySpeedAndPitch(userSpeed, getEffectivePitch());
+        }
+        notifyUI();
+    }
+
+    public int getFrequencyTuningMode() {
+        return frequencyTuningMode;
+    }
+
+    public String getFrequencyTuningLabel() {
+        if (frequencyTuningMode == 1) return "432Hz Crystal";
+        if (frequencyTuningMode == 2) return "528Hz Miracle";
+        return "440Hz Studio";
+    }
+
     public void setExtraVolumeBoost(int boostOver100) {
-        this.extraBoostPercent = Math.max(0, Math.min(100, boostOver100));
+        this.extraBoostPercent = Math.max(0, Math.min(200, boostOver100));
         if (loudnessEnhancer != null) {
             try {
                 if (this.extraBoostPercent > 0) {
-                    loudnessEnhancer.setTargetGain(this.extraBoostPercent * 25); // Up to 2500mB boost
+                    loudnessEnhancer.setTargetGain(this.extraBoostPercent * 25);
                     loudnessEnhancer.setEnabled(true);
                 } else {
                     loudnessEnhancer.setTargetGain(0);
@@ -299,7 +363,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                 setupAudioEffects(mp.getAudioSessionId());
                 mp.setVolume(1.0f, 1.0f);
                 mp.start();
-                applySpeedAndPitch(userSpeed, userPitch);
+                applySpeedAndPitch(userSpeed, getEffectivePitch());
                 showNotification(song, true);
                 notifyUI();
             });
@@ -316,7 +380,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             } else {
                 try {
                     mediaPlayer.start();
-                    applySpeedAndPitch(userSpeed, userPitch);
+                    applySpeedAndPitch(userSpeed, getEffectivePitch());
                     SongItem song = getCurrentSong();
                     if (song != null) showNotification(song, true);
                     notifyUI();
@@ -401,7 +465,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     public void setPlaybackSpeed(float speed) {
         this.userSpeed = Math.max(0.5f, Math.min(2.5f, speed));
         if (isPlaying()) {
-            applySpeedAndPitch(this.userSpeed, this.userPitch);
+            applySpeedAndPitch(this.userSpeed, getEffectivePitch());
         }
         notifyUI();
     }
@@ -413,7 +477,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     public void setPlaybackPitch(float pitch) {
         this.userPitch = Math.max(0.5f, Math.min(2.0f, pitch));
         if (isPlaying()) {
-            applySpeedAndPitch(this.userSpeed, this.userPitch);
+            applySpeedAndPitch(this.userSpeed, getEffectivePitch());
         }
         notifyUI();
     }
@@ -428,7 +492,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         applyReverbPreset(reverbIdx);
         setBassBoostStrength(bass);
         if (isPlaying()) {
-            applySpeedAndPitch(speed, pitch);
+            applySpeedAndPitch(speed, getEffectivePitch());
         }
         notifyUI();
     }
