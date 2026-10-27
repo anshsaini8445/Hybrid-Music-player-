@@ -24,8 +24,10 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.OvershootInterpolator;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -33,7 +35,6 @@ import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import java.io.File;
 import java.util.Locale;
 
 public class AudioThreeDotStudioHelper {
@@ -44,9 +45,13 @@ public class AudioThreeDotStudioHelper {
         void onToggleFavorite();
         boolean isSuperLoud200BoostActive();
         void onToggleSuperLoud200Boost();
+        boolean is8DSpatialAudioActive();
+        void onToggle8DSpatialAudio();
+        String getFrequencyTuningLabel();
+        void onCycleFrequencyTuning();
         float getPlaybackSpeed();
         void onChangePlaybackSpeed(float newSpeed);
-        int getLoopMode(); // 0=Shuffle, 1=Repeat1, 2=LoopAll, 3=Play1
+        int getLoopMode(); // 0=Shuffle, 1=Repeat1, 2=LoopAll
         void onChangeLoopMode(int newMode);
         void onTriggerAbRepeat();
         String getAbRepeatStatusText();
@@ -57,6 +62,34 @@ public class AudioThreeDotStudioHelper {
         void onPickCustomPhotoForSong(SongItem song);
         void onSwapBottomControlsOrder();
         void onDeleteSongPermanently(SongItem song);
+        void onOpenVipPlansOrWatchAd();
+    }
+
+    /**
+     * Attaches a buttery-smooth 60FPS 3D Spring Bounce animation to any button or tile!
+     */
+    public static void attachBouncySpring(final View view, final Runnable onClickAction) {
+        if (view == null) return;
+        view.setClickable(true);
+        view.setOnTouchListener((v, event) -> {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                v.animate().scaleX(0.88f).scaleY(0.88f).setDuration(90).start();
+            } else if (action == MotionEvent.ACTION_UP) {
+                v.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(240)
+                        .setInterpolator(new OvershootInterpolator(2.6f))
+                        .start();
+                if (onClickAction != null) {
+                    onClickAction.run();
+                }
+            } else if (action == MotionEvent.ACTION_CANCEL) {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
+            }
+            return true;
+        });
     }
 
     public static GradientDrawable makeFrostedWhiteCircle(float d) {
@@ -76,8 +109,10 @@ public class AudioThreeDotStudioHelper {
     }
 
     /**
-     * 100% Pure-White (#FFFFFF) 3-Dot Studio Panel with 12 Modern Tiles, Speed Slider & Loop Row.
-     * Uses a 3-Dot ("...") button in the header instead of any Cross ("X").
+     * 100% Pure-White (#FFFFFF) 3-Dot Studio Panel:
+     * - 12 Animated Studio Tiles (including FREE 8D Spatial Surround & FREE 432Hz/528Hz Tuner!)
+     * - VIP / Rewarded Ad Banner at the bottom for 300% Extreme Turbo Bass & Ad-Free Crown Mode
+     * - Uses a 3-Dot ("⋮") button in the header instead of any Cross ("X").
      */
     public static void showAudioThreeDotStudioDialog(
             final Context context,
@@ -89,14 +124,26 @@ public class AudioThreeDotStudioHelper {
 
         LinearLayout rootCard = new LinearLayout(context);
         rootCard.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (18 * d);
+        int pad = (int) (16 * d);
         rootCard.setPadding(pad, pad, pad, (int) (14 * d));
 
         GradientDrawable cardBg = new GradientDrawable();
-        cardBg.setColor(Color.parseColor("#F50A0A10"));
+        cardBg.setColor(Color.parseColor("#F5090D16"));
         cardBg.setCornerRadius(26f * d);
         cardBg.setStroke(Math.max(2, (int) (1.8f * d)), Color.WHITE);
         rootCard.setBackground(cardBg);
+
+        // Entrance Pop Animation for the Studio Card
+        rootCard.setScaleX(0.90f);
+        rootCard.setScaleY(0.90f);
+        rootCard.setAlpha(0f);
+        rootCard.animate()
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .alpha(1.0f)
+                .setDuration(240)
+                .setInterpolator(new OvershootInterpolator(1.6f))
+                .start();
 
         final AlertDialog dialog = new AlertDialog.Builder(context).setView(rootCard).create();
         if (dialog.getWindow() != null) {
@@ -107,22 +154,22 @@ public class AudioThreeDotStudioHelper {
         LinearLayout headerRow = new LinearLayout(context);
         headerRow.setOrientation(LinearLayout.HORIZONTAL);
         headerRow.setGravity(Gravity.CENTER_VERTICAL);
-        headerRow.setPadding((int) (4 * d), 0, (int) (4 * d), (int) (12 * d));
+        headerRow.setPadding((int) (4 * d), 0, (int) (4 * d), (int) (10 * d));
 
         LinearLayout titleCol = new LinearLayout(context);
         titleCol.setOrientation(LinearLayout.VERTICAL);
         titleCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView tvHeader = new TextView(context);
-        tvHeader.setText("Audio Studio & 3-Dot Controls");
+        tvHeader.setText("✨ Hybrid Pro Studio (Free Unlocked)");
         tvHeader.setTextColor(Color.WHITE);
-        tvHeader.setTextSize(17f);
+        tvHeader.setTextSize(16.5f);
         tvHeader.setTypeface(null, Typeface.BOLD);
 
         TextView tvSubSong = new TextView(context);
         tvSubSong.setText(songTitle);
-        tvSubSong.setTextColor(Color.WHITE);
-        tvSubSong.setTextSize(12.5f);
+        tvSubSong.setTextColor(Color.parseColor("#D8E2F0"));
+        tvSubSong.setTextSize(12f);
         tvSubSong.setSingleLine(true);
         tvSubSong.setEllipsize(TextUtils.TruncateAt.END);
         tvSubSong.setPadding(0, (int) (2 * d), 0, 0);
@@ -131,12 +178,12 @@ public class AudioThreeDotStudioHelper {
         titleCol.addView(tvSubSong);
 
         ImageView btnThreeDotDismiss = new ImageView(context);
-        btnThreeDotDismiss.setLayoutParams(new LinearLayout.LayoutParams((int) (42 * d), (int) (42 * d)));
+        btnThreeDotDismiss.setLayoutParams(new LinearLayout.LayoutParams((int) (40 * d), (int) (40 * d)));
         int iconPad = (int) (9 * d);
         btnThreeDotDismiss.setPadding(iconPad, iconPad, iconPad, iconPad);
         btnThreeDotDismiss.setImageDrawable(new PureWhiteAudioVectorDrawable("THREE_DOTS", d));
         btnThreeDotDismiss.setBackground(makeFrostedWhiteCircle(d));
-        btnThreeDotDismiss.setOnClickListener(v -> dialog.dismiss());
+        attachBouncySpring(btnThreeDotDismiss, dialog::dismiss);
 
         headerRow.addView(titleCol);
         headerRow.addView(btnThreeDotDismiss);
@@ -154,85 +201,96 @@ public class AudioThreeDotStudioHelper {
         LinearLayout contentCol = new LinearLayout(context);
         contentCol.setOrientation(LinearLayout.VERTICAL);
 
-        // 12 Larger Pure-White Studio Tiles (3 Rows x 4 Columns)
+        // 12 Pure-White Pro Studio Tiles (Including FREE 8D Surround & FREE 432Hz/528Hz Tuner!)
         GridLayout grid = new GridLayout(context);
         grid.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        gridLp.bottomMargin = (int) (14 * d);
+        gridLp.bottomMargin = (int) (12 * d);
         grid.setLayoutParams(gridLp);
 
         final String[] tileLabels = new String[]{
                 "Equalizer",
-                "Sound Lab",
-                "Sleep Timer",
+                "Lofi Lab",
+                callbacks.is8DSpatialAudioActive() ? "8D: ON" : "8D Audio",
+                callbacks.getFrequencyTuningLabel(),
                 callbacks.isSuperLoud200BoostActive() ? "200% ON" : "200% Boost",
-                callbacks.isFavoriteSong() ? "Favorited" : "Favorite",
-                "Ringtone",
+                "Sleep Timer",
                 callbacks.getAbRepeatStatusText(),
                 "Disc / Box",
                 "Line / Bars",
                 "Song Photo",
-                "Share Song",
+                "Ringtone",
                 "Delete Song"
         };
 
         final String[] tileIcons = new String[]{
                 "EQUALIZER",
                 "PITCH_LAB",
-                "TIMER",
+                "SPATIAL_8D",
+                "FREQ_HZ",
                 "BOOST",
-                callbacks.isFavoriteSong() ? "HEART_ON" : "HEART_OFF",
-                "RINGTONE",
+                "TIMER",
                 "AB_REPEAT",
                 "VINYL_DISC",
                 "WAVEFORM",
                 "PHOTO",
-                "SHARE",
+                "RINGTONE",
                 "DELETE"
         };
 
         for (int i = 0; i < 12; i++) {
             final int tileIdx = i;
             LinearLayout tileLayout = new LinearLayout(context);
-            tileLayout.setClickable(true);
-            tileLayout.setFocusable(true);
             tileLayout.setOrientation(LinearLayout.VERTICAL);
             tileLayout.setGravity(Gravity.CENTER);
-            tileLayout.setPadding((int) (6 * d), (int) (10 * d), (int) (6 * d), (int) (10 * d));
+            tileLayout.setPadding((int) (5 * d), (int) (9 * d), (int) (5 * d), (int) (9 * d));
 
             GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
             glp.width = 0;
-            glp.height = (int) (84 * d);
+            glp.height = (int) (78 * d);
             glp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            int m = (int) (4 * d);
+            int m = (int) (3.5f * d);
             glp.setMargins(m, m, m, m);
             tileLayout.setLayoutParams(glp);
 
+            boolean isHighlighted = (i == 2 && callbacks.is8DSpatialAudioActive())
+                    || (i == 4 && callbacks.isSuperLoud200BoostActive());
+
             GradientDrawable tileBg = new GradientDrawable();
-            tileBg.setColor(Color.parseColor("#1EFFFFFF"));
-            tileBg.setCornerRadius(16f * d);
+            tileBg.setColor(isHighlighted ? Color.parseColor("#38FFFFFF") : Color.parseColor("#1AFFFFFF"));
+            tileBg.setCornerRadius(15f * d);
             tileBg.setStroke(Math.max(1, (int) (1.2f * d)), Color.WHITE);
             tileLayout.setBackground(tileBg);
 
             ImageView iconView = new ImageView(context);
-            iconView.setLayoutParams(new LinearLayout.LayoutParams((int) (32 * d), (int) (32 * d)));
+            iconView.setLayoutParams(new LinearLayout.LayoutParams((int) (28 * d), (int) (28 * d)));
             iconView.setImageDrawable(new PureWhiteAudioVectorDrawable(tileIcons[i], d));
 
             TextView tvLabel = new TextView(context);
             tvLabel.setText(tileLabels[i]);
             tvLabel.setTextColor(Color.WHITE);
-            tvLabel.setTextSize(11.5f);
+            tvLabel.setTextSize(11f);
             tvLabel.setTypeface(null, Typeface.BOLD);
             tvLabel.setGravity(Gravity.CENTER);
             tvLabel.setSingleLine(true);
             tvLabel.setEllipsize(TextUtils.TruncateAt.END);
-            tvLabel.setPadding(0, (int) (6 * d), 0, 0);
+            tvLabel.setPadding(0, (int) (5 * d), 0, 0);
 
             tileLayout.addView(iconView);
             tileLayout.addView(tvLabel);
 
-            tileLayout.setOnClickListener(v -> {
+            // Cascading entrance animation for each tile
+            tileLayout.setAlpha(0f);
+            tileLayout.setTranslationY(20f);
+            tileLayout.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setStartDelay(i * 18L)
+                    .setDuration(200)
+                    .start();
+
+            attachBouncySpring(tileLayout, () -> {
                 dialog.dismiss();
                 switch (tileIdx) {
                     case 0:
@@ -240,18 +298,16 @@ public class AudioThreeDotStudioHelper {
                         callbacks.onOpenEqualizerAndSoundLab();
                         break;
                     case 2:
-                        callbacks.onOpenSleepTimer();
+                        callbacks.onToggle8DSpatialAudio();
                         break;
                     case 3:
-                        callbacks.onToggleSuperLoud200Boost();
+                        callbacks.onCycleFrequencyTuning();
                         break;
                     case 4:
-                        callbacks.onToggleFavorite();
+                        callbacks.onToggleSuperLoud200Boost();
                         break;
                     case 5:
-                        if (currentSong != null) {
-                            setSongAsPhoneRingtone(context, currentSong);
-                        }
+                        callbacks.onOpenSleepTimer();
                         break;
                     case 6:
                         callbacks.onTriggerAbRepeat();
@@ -269,7 +325,7 @@ public class AudioThreeDotStudioHelper {
                         break;
                     case 10:
                         if (currentSong != null) {
-                            shareSongFile(context, currentSong);
+                            setSongAsPhoneRingtone(context, currentSong);
                         }
                         break;
                     case 11:
@@ -284,7 +340,7 @@ public class AudioThreeDotStudioHelper {
         }
         contentCol.addView(grid);
 
-        // Pure-White Playback Speed Control Row (0.25x to 4.00x)
+        // Pure-White Playback Speed Control Row (0.50x to 2.50x)
         LinearLayout speedRow = new LinearLayout(context);
         speedRow.setOrientation(LinearLayout.VERTICAL);
         speedRow.setPadding((int) (8 * d), (int) (8 * d), (int) (8 * d), (int) (10 * d));
@@ -302,14 +358,14 @@ public class AudioThreeDotStudioHelper {
         final TextView tvSpeedTitle = new TextView(context);
         tvSpeedTitle.setText(String.format(Locale.US, "Playback Speed: %.2fx", callbacks.getPlaybackSpeed()));
         tvSpeedTitle.setTextColor(Color.WHITE);
-        tvSpeedTitle.setTextSize(14f);
+        tvSpeedTitle.setTextSize(13.5f);
         tvSpeedTitle.setTypeface(null, Typeface.BOLD);
         tvSpeedTitle.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView btnResetSpeed = new TextView(context);
         btnResetSpeed.setText("Reset 1.0x");
         btnResetSpeed.setTextColor(Color.parseColor("#0A0A10"));
-        btnResetSpeed.setTextSize(11.5f);
+        btnResetSpeed.setTextSize(11f);
         btnResetSpeed.setTypeface(null, Typeface.BOLD);
         btnResetSpeed.setPadding((int) (12 * d), (int) (5 * d), (int) (12 * d), (int) (5 * d));
         GradientDrawable resetBg = new GradientDrawable();
@@ -318,7 +374,7 @@ public class AudioThreeDotStudioHelper {
         btnResetSpeed.setBackground(resetBg);
 
         final SeekBar sbSpeed = new SeekBar(context);
-        sbSpeed.setMax(200); // 0.50x to 2.50x
+        sbSpeed.setMax(200);
         int initProgress = Math.max(0, Math.min(200, Math.round((callbacks.getPlaybackSpeed() - 0.5f) * 100f)));
         sbSpeed.setProgress(initProgress);
         if (sbSpeed.getProgressDrawable() != null) {
@@ -340,7 +396,7 @@ public class AudioThreeDotStudioHelper {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        btnResetSpeed.setOnClickListener(v -> {
+        attachBouncySpring(btnResetSpeed, () -> {
             sbSpeed.setProgress(50);
             tvSpeedTitle.setText("Playback Speed: 1.00x");
             callbacks.onChangePlaybackSpeed(1.0f);
@@ -352,26 +408,24 @@ public class AudioThreeDotStudioHelper {
         speedRow.addView(sbSpeed);
         contentCol.addView(speedRow);
 
-        // Pure-White Loop / Shuffle Mode Selector Row
+        // Pure-White Loop / Shuffle / Swap Icons Row
         LinearLayout loopRow = new LinearLayout(context);
         loopRow.setOrientation(LinearLayout.HORIZONTAL);
         loopRow.setWeightSum(4f);
         LinearLayout.LayoutParams loopLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        loopLp.topMargin = (int) (12 * d);
+        loopLp.topMargin = (int) (10 * d);
         loopRow.setLayoutParams(loopLp);
 
         final String[] loopLabels = new String[]{"Shuffle", "Repeat 1", "Loop All", "Swap Icons"};
-        final TextView[] loopBtns = new TextView[4];
-
         for (int i = 0; i < 4; i++) {
             final int modeIdx = i;
             TextView btn = new TextView(context);
             btn.setText(loopLabels[i]);
-            btn.setTextSize(12.5f);
+            btn.setTextSize(12f);
             btn.setTypeface(null, Typeface.BOLD);
             btn.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, (int) (42 * d), 1f);
+            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, (int) (38 * d), 1f);
             int bm = (int) (3 * d);
             blp.setMargins(bm, 0, bm, 0);
             btn.setLayoutParams(blp);
@@ -384,7 +438,7 @@ public class AudioThreeDotStudioHelper {
             btn.setBackground(lBg);
             btn.setTextColor(isSelected ? Color.parseColor("#0A0A10") : Color.WHITE);
 
-            btn.setOnClickListener(v -> {
+            attachBouncySpring(btn, () -> {
                 if (modeIdx == 3) {
                     callbacks.onSwapBottomControlsOrder();
                     dialog.dismiss();
@@ -393,10 +447,51 @@ public class AudioThreeDotStudioHelper {
                     dialog.dismiss();
                 }
             });
-            loopBtns[i] = btn;
             loopRow.addView(btn);
         }
         contentCol.addView(loopRow);
+
+        // VIP & Rewarded Ad Banner (Monetization Card: Watch Ad or Get ₹50/₹60/₹99 VIP)
+        LinearLayout vipBanner = new LinearLayout(context);
+        vipBanner.setOrientation(LinearLayout.HORIZONTAL);
+        vipBanner.setGravity(Gravity.CENTER_VERTICAL);
+        vipBanner.setPadding((int) (12 * d), (int) (10 * d), (int) (12 * d), (int) (10 * d));
+        LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        vlp.topMargin = (int) (10 * d);
+        vipBanner.setLayoutParams(vlp);
+
+        GradientDrawable vipBg = new GradientDrawable();
+        vipBg.setColor(Color.parseColor("#24FFFFFF"));
+        vipBg.setCornerRadius(16f * d);
+        vipBg.setStroke(Math.max(1, (int) (1.4f * d)), Color.WHITE);
+        vipBanner.setBackground(vipBg);
+
+        TextView tvVipInfo = new TextView(context);
+        tvVipInfo.setText("👑 Unlock 300% Extreme Bass & Golden VIP\nWatch 1 Short Ad (Free) or Get ₹50 / ₹99 VIP Pass");
+        tvVipInfo.setTextColor(Color.WHITE);
+        tvVipInfo.setTextSize(11.5f);
+        tvVipInfo.setTypeface(null, Typeface.BOLD);
+        tvVipInfo.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView btnGoVip = new TextView(context);
+        btnGoVip.setText("Unlock ⚡");
+        btnGoVip.setTextColor(Color.parseColor("#0A0A10"));
+        btnGoVip.setTextSize(11.5f);
+        btnGoVip.setTypeface(null, Typeface.BOLD);
+        btnGoVip.setPadding((int) (12 * d), (int) (7 * d), (int) (12 * d), (int) (7 * d));
+        GradientDrawable goBg = new GradientDrawable();
+        goBg.setColor(Color.WHITE);
+        goBg.setCornerRadius(12f * d);
+        btnGoVip.setBackground(goBg);
+
+        vipBanner.addView(tvVipInfo);
+        vipBanner.addView(btnGoVip);
+        attachBouncySpring(vipBanner, () -> {
+            dialog.dismiss();
+            callbacks.onOpenVipPlansOrWatchAd();
+        });
+        contentCol.addView(vipBanner);
 
         scroll.addView(contentCol);
         rootCard.addView(scroll);
@@ -463,7 +558,7 @@ public class AudioThreeDotStudioHelper {
 
             strokePaint.setColor(Color.WHITE);
             strokePaint.setStyle(Paint.Style.STROKE);
-            strokePaint.setStrokeWidth(2.6f * d);
+            strokePaint.setStrokeWidth(2.4f * d);
             strokePaint.setStrokeCap(Paint.Cap.ROUND);
             strokePaint.setStrokeJoin(Paint.Join.ROUND);
 
@@ -489,9 +584,9 @@ public class AudioThreeDotStudioHelper {
                     canvas.drawLine(cx, cy + r * 0.38f, cx + r * 0.62f, cy - r * 0.25f, strokePaint);
                     break;
                 case "THREE_DOTS":
-                    canvas.drawCircle(cx, cy - r * 0.66f, 2.7f * d, fillPaint);
-                    canvas.drawCircle(cx, cy, 2.7f * d, fillPaint);
-                    canvas.drawCircle(cx, cy + r * 0.66f, 2.7f * d, fillPaint);
+                    canvas.drawCircle(cx, cy - r * 0.66f, 2.6f * d, fillPaint);
+                    canvas.drawCircle(cx, cy, 2.6f * d, fillPaint);
+                    canvas.drawCircle(cx, cy + r * 0.66f, 2.6f * d, fillPaint);
                     break;
                 case "PLAY":
                     path.moveTo(cx - r * 0.32f, cy - r * 0.58f);
@@ -543,9 +638,21 @@ public class AudioThreeDotStudioHelper {
                     canvas.drawLine(cx - r * 0.58f, cy - r * 0.72f, cx - r * 0.58f, cy + r * 0.72f, strokePaint);
                     canvas.drawLine(cx, cy - r * 0.72f, cx, cy + r * 0.72f, strokePaint);
                     canvas.drawLine(cx + r * 0.58f, cy - r * 0.72f, cx + r * 0.58f, cy + r * 0.72f, strokePaint);
-                    canvas.drawCircle(cx - r * 0.58f, cy - r * 0.2f, 2.9f * d, fillPaint);
-                    canvas.drawCircle(cx, cy + r * 0.25f, 2.9f * d, fillPaint);
-                    canvas.drawCircle(cx + r * 0.58f, cy - r * 0.25f, 2.9f * d, fillPaint);
+                    canvas.drawCircle(cx - r * 0.58f, cy - r * 0.2f, 2.8f * d, fillPaint);
+                    canvas.drawCircle(cx, cy + r * 0.25f, 2.8f * d, fillPaint);
+                    canvas.drawCircle(cx + r * 0.58f, cy - r * 0.25f, 2.8f * d, fillPaint);
+                    break;
+                case "SPATIAL_8D":
+                    rect.set(cx - r * 0.85f, cy - r * 0.48f, cx + r * 0.85f, cy + r * 0.48f);
+                    canvas.drawOval(rect, strokePaint);
+                    canvas.drawCircle(cx, cy, r * 0.26f, fillPaint);
+                    break;
+                case "FREQ_HZ":
+                    path.moveTo(cx - r * 0.8f, cy);
+                    path.lineTo(cx - r * 0.35f, cy - r * 0.65f);
+                    path.lineTo(cx + r * 0.25f, cy + r * 0.65f);
+                    path.lineTo(cx + r * 0.8f, cy);
+                    canvas.drawPath(path, strokePaint);
                     break;
                 case "QUEUE_LIST":
                     canvas.drawLine(cx - r * 0.75f, cy - r * 0.55f, cx + r * 0.75f, cy - r * 0.55f, strokePaint);
