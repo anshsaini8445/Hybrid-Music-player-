@@ -15,13 +15,20 @@ public class ThemeManager {
     private static final String PREF_NAME = "hybrid_music_prefs";
     private static final String KEY_THEME_INDEX = "theme_index";
     private static final String KEY_CUSTOM_BG_URI = "custom_bg_uri";
-    private static final String KEY_DISC_MODE = "disc_mode"; // true = Vinyl Disc + Danda, false = Square Box
-    private static final String KEY_WAVEFORM_MODE = "waveform_mode"; // true = Lambe Dande, false = Simple Line
+    private static final String KEY_DISC_MODE = "disc_mode";
+    private static final String KEY_WAVEFORM_MODE = "waveform_mode";
     private static final String KEY_HEADER_TITLE = "header_title";
     private static final String KEY_HEADER_STAR = "header_star";
     private static final String KEY_FAVORITES = "favorite_song_ids";
     private static final String KEY_BOTTOM_ORDER = "bottom_icon_order";
     private static final String KEY_DJ_SLOW_FADE = "dj_slow_fade";
+
+    // New Keys for Cute Puppy Folder, 15 Colors, Language Folder, VIP Plan & Privacy Link
+    private static final String KEY_PUPPY_BREED = "puppy_breed_index";
+    private static final String KEY_PUPPY_COLOR = "puppy_color_index";
+    private static final String KEY_APP_LANGUAGE = "app_language_code";
+    private static final String KEY_VIP_PLAN = "vip_supporter_plan";
+    private static final String KEY_PRIVACY_URL = "privacy_policy_url";
 
     public static class ThemePreset {
         public final String name;
@@ -41,9 +48,8 @@ public class ThemeManager {
         }
     }
 
-    // 20 High-Contrast Modern Themes (Dark, Neon, AMOLED & Clean Daylight Themes)
     private static final ThemePreset[] THEMES = new ThemePreset[]{
-            new ThemePreset("1. Muso Cyber Neon", "#0B0F19", "#151D2E", "#1E293B", "#00E5FF", "#FF2E93"),
+            new ThemePreset("1. Muso Cyber Neon", "#080C14", "#121A28", "#1A2436", "#00E5FF", "#FF2E93"),
             new ThemePreset("2. PLAYit Royal Gold", "#0F0C08", "#1C160E", "#292014", "#FFD700", "#FF8C00"),
             new ThemePreset("3. AMOLED Pitch Black", "#000000", "#0D0D0D", "#1A1A1A", "#00FF87", "#00B8FF"),
             new ThemePreset("4. Crimson Velvet", "#1A070D", "#2B0C16", "#3D1220", "#FF3366", "#FF99AC"),
@@ -63,6 +69,33 @@ public class ThemeManager {
             new ThemePreset("18. Clean Snow Daylight", "#F8FAFC", "#FFFFFF", "#E2E8F0", "#0284C7", "#DB2777"),
             new ThemePreset("19. Sakura Daylight", "#FFF1F2", "#FFFFFF", "#FFE4E6", "#E11D48", "#9333EA"),
             new ThemePreset("20. Mint Daylight Breeze", "#F0FDF4", "#FFFFFF", "#DCFCE7", "#059669", "#0284C7")
+    };
+
+    // 7 Super-Cute Puppy Types
+    public static final String[] PUPPY_BREED_NAMES = new String[]{
+            "1. 🐶 Golden Cutie DJ Pup",
+            "2. 🐺 Snowy Husky Star Pup",
+            "3. 🐼 Fluffy Chibi Panda Pup",
+            "4. 🦊 Cyber Neon Shiba Pup",
+            "5. 👑 Royal Crown Pug DJ",
+            "6. 🐰 Bouncy Bunny-Ear Pup",
+            "7. 🚀 Astro Space Halo Pup"
+    };
+
+    // 15 Vibrant Puppy Coat Colors
+    public static final String[] PUPPY_COLOR_NAMES = new String[]{
+            "1. Golden Honey", "2. Pure Snow White", "3. Sakura Pink", "4. Cyber Cyan",
+            "5. Sunset Orange", "6. Lavender Magic", "7. Mint Cream", "8. Caramel Brown",
+            "9. Strawberry Red", "10. Sky Blue", "11. Lemon Glow", "12. Peach Rose",
+            "13. Neon Lime", "14. Silver Frost", "15. Royal Purple"
+    };
+
+    public static final int[] PUPPY_COLOR_HEX = new int[]{
+            Color.parseColor("#FBBF24"), Color.parseColor("#F8FAFC"), Color.parseColor("#F472B6"),
+            Color.parseColor("#22D3EE"), Color.parseColor("#FB923C"), Color.parseColor("#C084FC"),
+            Color.parseColor("#34D399"), Color.parseColor("#D97706"), Color.parseColor("#F87171"),
+            Color.parseColor("#60A5FA"), Color.parseColor("#FACC15"), Color.parseColor("#FDA4AF"),
+            Color.parseColor("#A3E635"), Color.parseColor("#CBD5E1"), Color.parseColor("#A855F7")
     };
 
     private final SharedPreferences prefs;
@@ -89,24 +122,18 @@ public class ThemeManager {
         return THEMES[getCurrentThemeIndex()];
     }
 
-    // Automatic Contrast Engine: Never allows black text on dark background or white text on light background
     public boolean isLightBackground() {
         double luminance = ColorUtils.calculateLuminance(getCurrentTheme().bgPrimary);
         return luminance > 0.5;
     }
 
     public int getPrimaryTextColor() {
-        // If user set a custom background photo, always use crisp white with shadow/card contrast
-        if (hasCustomBgPhoto()) {
-            return Color.WHITE;
-        }
+        if (hasCustomBgPhoto()) return Color.WHITE;
         return isLightBackground() ? Color.parseColor("#0F172A") : Color.WHITE;
     }
 
     public int getSecondaryTextColor() {
-        if (hasCustomBgPhoto()) {
-            return Color.parseColor("#E2E8F0");
-        }
+        if (hasCustomBgPhoto()) return Color.parseColor("#E2E8F0");
         return isLightBackground() ? Color.parseColor("#334155") : Color.parseColor("#CBD5E1");
     }
 
@@ -117,12 +144,11 @@ public class ThemeManager {
     public int getCardColorWithAlpha() {
         int card = getCurrentTheme().bgCard;
         if (hasCustomBgPhoto()) {
-            return Color.argb(200, 15, 23, 42);
+            return Color.argb(205, 15, 23, 42);
         }
         return card;
     }
 
-    // Custom Gallery Theme Photo Support
     public void setCustomBgUri(String uriString) {
         prefs.edit().putString(KEY_CUSTOM_BG_URI, uriString != null ? uriString : "").apply();
     }
@@ -136,16 +162,14 @@ public class ThemeManager {
         return uri != null && !uri.trim().isEmpty();
     }
 
-    // Disc + Danda Mode vs Square Box Mode
     public boolean isVinylDiscMode() {
-        return prefs.getBoolean(KEY_DISC_MODE, false); // Default Square Box or toggleable to Disc + Danda
+        return prefs.getBoolean(KEY_DISC_MODE, false);
     }
 
     public void setVinylDiscMode(boolean vinylMode) {
         prefs.edit().putBoolean(KEY_DISC_MODE, vinylMode).apply();
     }
 
-    // Waveform (Lambe Dande) vs Simple Line Seekbar
     public boolean isWaveformMode() {
         return prefs.getBoolean(KEY_WAVEFORM_MODE, true);
     }
@@ -154,7 +178,6 @@ public class ThemeManager {
         prefs.edit().putBoolean(KEY_WAVEFORM_MODE, waveform).apply();
     }
 
-    // 10-Second DJ Slow Transition Toggle
     public boolean isDjSlowFadeEnabled() {
         return prefs.getBoolean(KEY_DJ_SLOW_FADE, true);
     }
@@ -163,13 +186,14 @@ public class ThemeManager {
         prefs.edit().putBoolean(KEY_DJ_SLOW_FADE, enabled).apply();
     }
 
-    // Customizable App Title & Star Icon in Top Bar
     public String getHeaderTitle() {
         return prefs.getString(KEY_HEADER_TITLE, "Hybrid Music Player");
     }
 
     public void setHeaderTitle(String title) {
-        prefs.edit().putString(KEY_HEADER_TITLE, title).apply();
+        if (title != null && !title.trim().isEmpty()) {
+            prefs.edit().putString(KEY_HEADER_TITLE, title.trim()).apply();
+        }
     }
 
     public String getHeaderStar() {
@@ -177,10 +201,77 @@ public class ThemeManager {
     }
 
     public void setHeaderStar(String starSymbol) {
-        prefs.edit().putString(KEY_HEADER_STAR, starSymbol).apply();
+        prefs.edit().putString(KEY_HEADER_STAR, starSymbol != null ? starSymbol : "★").apply();
     }
 
-    // Permanent Custom Photo Per Song from Library
+    // --- Cute Puppy Breed (0..6) & 15 Colors (0..14) ---
+    public int getPuppyBreedIndex() {
+        int idx = prefs.getInt(KEY_PUPPY_BREED, 0);
+        if (idx < 0 || idx >= PUPPY_BREED_NAMES.length) idx = 0;
+        return idx;
+    }
+
+    public void setPuppyBreedIndex(int idx) {
+        prefs.edit().putInt(KEY_PUPPY_BREED, idx).apply();
+    }
+
+    public int getPuppyColorIndex() {
+        int idx = prefs.getInt(KEY_PUPPY_COLOR, 0);
+        if (idx < 0 || idx >= PUPPY_COLOR_HEX.length) idx = 0;
+        return idx;
+    }
+
+    public void setPuppyColorIndex(int idx) {
+        prefs.edit().putInt(KEY_PUPPY_COLOR, idx).apply();
+    }
+
+    public int getSelectedPuppyColor() {
+        return PUPPY_COLOR_HEX[getPuppyColorIndex()];
+    }
+
+    // --- Language Folder Support ---
+    public String getAppLanguage() {
+        return prefs.getString(KEY_APP_LANGUAGE, "Hinglish");
+    }
+
+    public void setAppLanguage(String language) {
+        prefs.edit().putString(KEY_APP_LANGUAGE, language).apply();
+    }
+
+    // --- VIP Support Plan (₹50, ₹60, ₹99) ---
+    public String getActiveVipPlan() {
+        return prefs.getString(KEY_VIP_PLAN, "Free Studio User");
+    }
+
+    public void setActiveVipPlan(String planName) {
+        prefs.edit().putString(KEY_VIP_PLAN, planName).apply();
+    }
+
+    // --- Song Trim / "Aadha Gana Chalana" Support ---
+    public void setSongTrimSeconds(long songId, int startSec, int endSec) {
+        prefs.edit()
+                .putInt("trim_start_" + songId, Math.max(0, startSec))
+                .putInt("trim_end_" + songId, Math.max(0, endSec))
+                .apply();
+    }
+
+    public int getSongTrimStartSec(long songId) {
+        return prefs.getInt("trim_start_" + songId, 0);
+    }
+
+    public int getSongTrimEndSec(long songId) {
+        return prefs.getInt("trim_end_" + songId, 0);
+    }
+
+    // --- Editable Privacy Policy Link ---
+    public String getPrivacyPolicyUrl() {
+        return prefs.getString(KEY_PRIVACY_URL, "");
+    }
+
+    public void setPrivacyPolicyUrl(String url) {
+        prefs.edit().putString(KEY_PRIVACY_URL, url != null ? url.trim() : "").apply();
+    }
+
     public void setSongCustomPhoto(long songId, String uriString) {
         prefs.edit().putString("song_photo_" + songId, uriString).apply();
     }
@@ -189,7 +280,6 @@ public class ThemeManager {
         return prefs.getString("song_photo_" + songId, "");
     }
 
-    // Favorites Management
     public boolean isFavorite(long songId) {
         Set<String> set = prefs.getStringSet(KEY_FAVORITES, new HashSet<String>());
         return set.contains(String.valueOf(songId));
@@ -211,11 +301,10 @@ public class ThemeManager {
         return nowFav;
     }
 
-    // Swappable Bottom Controls Order (0=Timer, 1=A-B Repeat, 2=Equalizer, 3=Speed)
     public int[] getBottomControlOrder() {
-        String raw = prefs.getString(KEY_BOTTOM_ORDER, "0,1,2,3");
+        String raw = prefs.getString(KEY_BOTTOM_ORDER, "2,1,3,0");
         String[] parts = raw.split(",");
-        int[] order = new int[]{0, 1, 2, 3};
+        int[] order = new int[]{2, 1, 3, 0};
         if (parts.length == 4) {
             try {
                 for (int i = 0; i < 4; i++) {
@@ -249,7 +338,6 @@ public class ThemeManager {
         }
     }
 
-    // Custom Saved Lyrics Per Song
     public void saveCustomLyrics(long songId, String lyrics) {
         prefs.edit().putString("lyrics_" + songId, lyrics).apply();
     }
@@ -258,9 +346,9 @@ public class ThemeManager {
         return prefs.getString("lyrics_" + songId, "");
     }
 
-    // User Playlists Support
     public List<String> getPlaylistNames() {
-        Set<String> names = prefs.getStringSet("playlist_names", new HashSet<>(Arrays.asList("My Top Hits", "Night Drive", "Gym Bass")));
+        Set<String> names = prefs.getStringSet("playlist_names",
+                new HashSet<>(Arrays.asList("My Top Hits", "Night Drive", "Gym Bass")));
         return new ArrayList<>(names);
     }
 
