@@ -23,6 +23,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -124,14 +125,13 @@ public class MainActivity extends AppCompatActivity implements
                 fpWaveformSeekBar.setABMarkers(musicService.getFractionA(), musicService.getFractionB());
                 fpWaveformSeekBar.setPlaying(playing);
 
-                // Single Super-Cute Puppy dances whenever song plays!
                 floatingGuddaView.setPlayingState(playing);
                 fpAlbumArtDiscView.setPlaying(playing);
 
                 fpCurrentTime.setText(formatMs(pos));
                 fpTotalTime.setText(formatMs(dur));
             }
-            uiHandler.postDelayed(this, 400);
+            uiHandler.postDelayed(this, 350);
         }
     };
 
@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements
         pocketShakeManager = new PocketShakeManager(this, () -> {
             if (musicService != null) {
                 musicService.playNext();
-                Toast.makeText(this, "Double-Shake: Next Song Played!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "📳 Double-Shake: Next Song Played!", Toast.LENGTH_SHORT).show();
             }
         });
         pocketShakeManager.setEnabled(false);
@@ -305,14 +305,14 @@ public class MainActivity extends AppCompatActivity implements
     private void setupInteractions() {
         for (int i = 0; i < 6; i++) {
             final int tabIdx = i;
-            topTabPills[i].setOnClickListener(v -> selectTopCategoryTab(tabIdx));
+            AudioThreeDotStudioHelper.attachBouncySpring(topTabPills[i], () -> selectTopCategoryTab(tabIdx));
         }
 
-        profileThemeButton.setOnClickListener(v -> onOpenEqualizerAndSoundLab());
-        topSortMenuBtn.setOnClickListener(v -> showAudioStudioSortAndToolsMenu());
+        AudioThreeDotStudioHelper.attachBouncySpring(profileThemeButton, this::onOpenEqualizerAndSoundLab);
+        AudioThreeDotStudioHelper.attachBouncySpring(topSortMenuBtn, this::showAudioStudioSortAndToolsMenu);
         appTitleText.setOnClickListener(v -> showCustomizeHeaderDialog());
 
-        playShuffleAllBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(playShuffleAllBtn, () -> {
             if (musicService != null && !displayedSongs.isEmpty()) {
                 musicService.setShuffle(true);
                 musicService.setQueue(displayedSongs, 0);
@@ -320,7 +320,7 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
-        randomPlayBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(randomPlayBtn, () -> {
             if (musicService != null && !displayedSongs.isEmpty()) {
                 int randIdx = (int) (Math.random() * displayedSongs.size());
                 musicService.setQueue(displayedSongs, randIdx);
@@ -384,31 +384,31 @@ public class MainActivity extends AppCompatActivity implements
         navSearchBtn.setOnClickListener(v -> showBottomSection(1));
         navSettingsBtn.setOnClickListener(v -> showBottomSection(2));
 
-        miniPrevBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(miniPrevBtn, () -> {
             if (musicService != null) musicService.playPrevious();
         });
-        miniPlayPauseBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(miniPlayPauseBtn, () -> {
             if (musicService != null) musicService.playToggle();
         });
-        miniNextBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(miniNextBtn, () -> {
             if (musicService != null) musicService.playNext();
         });
-        miniThreeDotBtn.setOnClickListener(v ->
+        AudioThreeDotStudioHelper.attachBouncySpring(miniThreeDotBtn, () ->
                 AudioThreeDotStudioHelper.showAudioThreeDotStudioDialog(MainActivity.this, MainActivity.this));
 
-        fpCloseBtn.setOnClickListener(v -> fullPlayerOverlay.setVisibility(View.GONE));
-        fpTopEqualizerBtn.setOnClickListener(v -> onOpenEqualizerAndSoundLab());
+        AudioThreeDotStudioHelper.attachBouncySpring(fpCloseBtn, this::closeFullPlayerSmoothly);
+        AudioThreeDotStudioHelper.attachBouncySpring(fpTopEqualizerBtn, this::onOpenEqualizerAndSoundLab);
 
-        View.OnClickListener openStudioMenu = v ->
+        Runnable openStudioMenu = () ->
                 AudioThreeDotStudioHelper.showAudioThreeDotStudioDialog(MainActivity.this, MainActivity.this);
-        fpThreeDotBtn.setOnClickListener(openStudioMenu);
-        fpBottomThreeDotBtn.setOnClickListener(openStudioMenu);
+        AudioThreeDotStudioHelper.attachBouncySpring(fpThreeDotBtn, openStudioMenu);
+        AudioThreeDotStudioHelper.attachBouncySpring(fpBottomThreeDotBtn, openStudioMenu);
 
-        fpFavoriteHeartBtn.setOnClickListener(v -> onToggleFavorite());
+        AudioThreeDotStudioHelper.attachBouncySpring(fpFavoriteHeartBtn, this::onToggleFavorite);
+        AudioThreeDotStudioHelper.attachBouncySpring(fpQueueBtn, this::openRightSlideQueue);
 
-        fpQueueBtn.setOnClickListener(v -> openRightSlideQueue());
         queueBackdropOverlay.setOnClickListener(v -> closeRightSlideQueue());
-        queueCloseCutBtn.setOnClickListener(v -> closeRightSlideQueue());
+        AudioThreeDotStudioHelper.attachBouncySpring(queueCloseCutBtn, this::closeRightSlideQueue);
 
         fpAlbumArtDiscView.setOnArtGestureListener(new AlbumArtDiscView.OnArtGestureListener() {
             @Override
@@ -425,17 +425,16 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
-        fpQuickLyricsBtn.setOnClickListener(v -> openLyricsPanel(true));
+        AudioThreeDotStudioHelper.attachBouncySpring(fpQuickLyricsBtn, () -> openLyricsPanel(true));
 
         findViewById(R.id.fpBackToArtBtn).setOnClickListener(v -> {
             fpLyricsContainer.setVisibility(View.GONE);
             fpAlbumArtDiscView.setLyricsPageSelected(false);
         });
         findViewById(R.id.fpFindLyricsOnlineBtn).setOnClickListener(v -> fetchOnlineLyricsForCurrentSong());
-
         fpLyricsFavBtn.setOnClickListener(v -> onToggleFavorite());
 
-        fpPocketShakeBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpPocketShakeBtn, () -> {
             boolean nextState = !pocketShakeManager.isEnabled();
             pocketShakeManager.setEnabled(nextState);
             updatePocketShakeButtonUI();
@@ -451,17 +450,17 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
-        fpPlayPauseBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpPlayPauseBtn, () -> {
             if (musicService != null) musicService.playToggle();
         });
-        fpPrevBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpPrevBtn, () -> {
             if (musicService != null) musicService.playPrevious();
         });
-        fpNextBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpNextBtn, () -> {
             if (musicService != null) musicService.playNext();
         });
 
-        fpShuffleBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpShuffleBtn, () -> {
             if (musicService != null) {
                 boolean next = !musicService.isShuffle();
                 musicService.setShuffle(next);
@@ -470,7 +469,7 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
-        fpRepeatBtn.setOnClickListener(v -> {
+        AudioThreeDotStudioHelper.attachBouncySpring(fpRepeatBtn, () -> {
             if (musicService != null) {
                 int nextMode = (musicService.getRepeatMode() + 1) % 3;
                 musicService.setRepeatMode(nextMode);
@@ -550,6 +549,7 @@ public class MainActivity extends AppCompatActivity implements
         String[] options = new String[]{
                 "Play Song Now (Hi-Res Studio Player)",
                 "Cut / Play Half Song (Aadha Gaana Chalayein)",
+                "Enable Free 8D Spatial Surround Audio",
                 isFav ? "Remove from Favorites" : "Add to Favorites",
                 "5-Band Dolby Equalizer & Bass Boost",
                 "Sound & Pitch Lab (Lofi / Slowed + Reverb)",
@@ -575,24 +575,27 @@ public class MainActivity extends AppCompatActivity implements
                     Toast.makeText(this, "✂️ Playing Half Song (0s to " + halfSec + "s)", Toast.LENGTH_LONG).show();
                     break;
                 case 2:
+                    onToggle8DSpatialAudio();
+                    break;
+                case 3:
                     boolean nowFav = themeManager.toggleFavorite(song.id);
                     Toast.makeText(this, nowFav ? "Added to Favorites" : "Removed from Favorites", Toast.LENGTH_SHORT).show();
                     syncPlayerUI();
                     break;
-                case 3:
                 case 4:
+                case 5:
                     onOpenEqualizerAndSoundLab();
                     break;
-                case 5:
+                case 6:
                     onPickCustomPhotoForSong(song);
                     break;
-                case 6:
+                case 7:
                     AudioThreeDotStudioHelper.setSongAsPhoneRingtone(this, song);
                     break;
-                case 7:
+                case 8:
                     AudioThreeDotStudioHelper.shareSongFile(this, song);
                     break;
-                case 8:
+                case 9:
                     new AlertDialog.Builder(this)
                             .setTitle("Audio Track Details")
                             .setMessage("Title: " + song.title
@@ -603,7 +606,7 @@ public class MainActivity extends AppCompatActivity implements
                             .setPositiveButton("OK", null)
                             .show();
                     break;
-                case 9:
+                case 10:
                     onDeleteSongPermanently(song);
                     break;
             }
@@ -617,6 +620,8 @@ public class MainActivity extends AppCompatActivity implements
                 "Sort: Artist / Singer Name",
                 "Sort: Longest Duration Songs",
                 "Sort: Largest File Size",
+                "🎧 Toggle 8D Spatial Surround Audio (Free Pro)",
+                "🎼 Switch 432Hz / 528Hz Frequency Tuner (Free Pro)",
                 "🐶 Open Cute Puppy Studio (7 Puppies & 15 Colors)",
                 "Open 5-Band Dolby Equalizer & Bass Boost",
                 "Choose 20+ Studio Themes & Gallery Wallpaper"
@@ -638,10 +643,14 @@ public class MainActivity extends AppCompatActivity implements
                 Collections.sort(displayedSongs, (a, b) -> Long.compare(b.size, a.size));
                 refreshMainListAdapter();
             } else if (which == 5) {
-                SettingsSectionHelper.showCutePuppyStudioFolderDialog(this, themeManager, this);
+                onToggle8DSpatialAudio();
             } else if (which == 6) {
-                onOpenEqualizerAndSoundLab();
+                onCycleFrequencyTuning();
             } else if (which == 7) {
+                SettingsSectionHelper.showCutePuppyStudioFolderDialog(this, themeManager, this);
+            } else if (which == 8) {
+                onOpenEqualizerAndSoundLab();
+            } else if (which == 9) {
                 showThemePickerDialog();
             }
         });
@@ -685,6 +694,38 @@ public class MainActivity extends AppCompatActivity implements
         }
         syncPlayerUI();
         Toast.makeText(this, isSuperLoud200Boost ? "200% Super Loud Boost ON" : "Normal 100% Volume", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean is8DSpatialAudioActive() {
+        return musicService != null && musicService.is8DSpatialAudioEnabled();
+    }
+
+    @Override
+    public void onToggle8DSpatialAudio() {
+        if (musicService != null) {
+            boolean next = !musicService.is8DSpatialAudioEnabled();
+            musicService.set8DSpatialAudioEnabled(next);
+            syncPlayerUI();
+            Toast.makeText(this, next
+                    ? "🎧 8D Spatial Surround ON (360° Rotating Audio!)"
+                    : "8D Spatial Surround OFF", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public String getFrequencyTuningLabel() {
+        return musicService != null ? musicService.getFrequencyTuningLabel() : "440Hz Studio";
+    }
+
+    @Override
+    public void onCycleFrequencyTuning() {
+        if (musicService != null) {
+            musicService.cycleFrequencyTuningMode();
+            String label = musicService.getFrequencyTuningLabel();
+            syncPlayerUI();
+            Toast.makeText(this, "🎼 Studio Tuning: " + label, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -758,7 +799,7 @@ public class MainActivity extends AppCompatActivity implements
         boolean next = !themeManager.isVinylDiscMode();
         themeManager.setVinylDiscMode(next);
         fpAlbumArtDiscView.setVinylDiscMode(next);
-        Toast.makeText(this, next ? "Rotating Vinyl Disc + Top Danda View" : "Studio Square Cover Photo View", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, next ? "Rotating Vinyl Disc + Laser Tonearm View" : "3D Holographic Square Cover View", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -766,7 +807,7 @@ public class MainActivity extends AppCompatActivity implements
         boolean next = !themeManager.isWaveformMode();
         themeManager.setWaveformMode(next);
         fpWaveformSeekBar.setWaveformStyle(next);
-        Toast.makeText(this, next ? "Waveform Bars (Lambe Dande) View" : "Simple Straight Line View", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, next ? "60FPS Liquid Mirror Waveform Bars" : "Laser Straight Line Seekbar", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -790,6 +831,29 @@ public class MainActivity extends AppCompatActivity implements
         if (song != null) {
             SongAdapter.showPermanentDeleteDialog(this, song, this::loadAllAudioAndVideoSongs);
         }
+    }
+
+    @Override
+    public void onOpenVipPlansOrWatchAd() {
+        String[] choices = new String[]{
+                "🎬 Watch 1 Short Sponsor Ad -> Unlock 300% Extreme Turbo Bass (Free)",
+                "🥈 Get ₹50 Silver VIP Plan (Ad-Free + Golden Badge)",
+                "🥇 Get ₹60 Gold VIP Plan (Ad-Free + All Pro Effects)",
+                "👑 Get ₹99 VIP Legend Plan (Lifetime VIP + 300% Extreme Studio)"
+        };
+        SongAdapter.showPureWhiteAudioMenuDialog(this, "👑 Hybrid VIP & Free Ad Rewards", choices, which -> {
+            if (which == 0) {
+                currentDisplayVolumePercent = 200;
+                isSuperLoud200Boost = true;
+                applyVolumePercentToHardware(200);
+                if (musicService != null) musicService.setBassBoostStrength(100);
+                if (volumeBannerView != null) volumeBannerView.showVolume(200);
+                Toast.makeText(this, "🔥 Sponsor Ad Reward Unlocked: 300% Extreme Turbo Bass Active!", Toast.LENGTH_LONG).show();
+            } else {
+                fullPlayerOverlay.setVisibility(View.GONE);
+                showBottomSection(2);
+            }
+        });
     }
 
     // --- Media Loading & Navigation ---
@@ -995,19 +1059,31 @@ public class MainActivity extends AppCompatActivity implements
         topHeaderBar.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
         subShuffleHeaderRow.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
 
-        // Highlight active bottom navigation item
         navSongsBtn.setTextColor(sectionIndex == 0 ? Color.WHITE : Color.parseColor("#94A3B8"));
         navSearchBtn.setTextColor(sectionIndex == 1 ? Color.WHITE : Color.parseColor("#94A3B8"));
         navSettingsBtn.setTextColor(sectionIndex == 2 ? Color.WHITE : Color.parseColor("#94A3B8"));
 
+        View targetView;
         if (sectionIndex == 0) {
-            container.addView(mainRecyclerView);
+            targetView = mainRecyclerView;
         } else if (sectionIndex == 1) {
-            container.addView(SettingsSectionHelper.buildModernSearchScreen(this, allSongs, themeManager, this));
-        } else if (sectionIndex == 2) {
-            container.addView(SettingsSectionHelper.buildModernSettingsScreen(
-                    this, themeManager, pocketShakeManager, currentDisplayVolumePercent, this));
+            targetView = SettingsSectionHelper.buildModernSearchScreen(this, allSongs, themeManager, this);
+        } else {
+            targetView = SettingsSectionHelper.buildModernSettingsScreen(
+                    this, themeManager, pocketShakeManager, currentDisplayVolumePercent, this);
         }
+
+        // Smooth Fade + Slide-In Transition when switching bottom tabs
+        targetView.setAlpha(0f);
+        targetView.setTranslationY(28f);
+        container.addView(targetView);
+        targetView.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+
         applyActiveThemeEverywhere();
     }
 
@@ -1090,10 +1166,33 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void openFullPlayer() {
-        fullPlayerOverlay.setVisibility(View.VISIBLE);
+        if (fullPlayerOverlay.getVisibility() != View.VISIBLE) {
+            fullPlayerOverlay.setVisibility(View.VISIBLE);
+            fullPlayerOverlay.setAlpha(0f);
+            fullPlayerOverlay.setTranslationY(120f);
+            fullPlayerOverlay.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(260)
+                    .setInterpolator(new DecelerateInterpolator())
+                    .start();
+        }
         fpAlbumArtDiscView.setVinylDiscMode(themeManager.isVinylDiscMode());
         fpWaveformSeekBar.setWaveformStyle(themeManager.isWaveformMode());
         syncPlayerUI();
+    }
+
+    private void closeFullPlayerSmoothly() {
+        fullPlayerOverlay.animate()
+                .alpha(0f)
+                .translationY(120f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    fullPlayerOverlay.setVisibility(View.GONE);
+                    fullPlayerOverlay.setAlpha(1f);
+                    fullPlayerOverlay.setTranslationY(0f);
+                })
+                .start();
     }
 
     private void openRightSlideQueue() {
@@ -1190,15 +1289,13 @@ public class MainActivity extends AppCompatActivity implements
         }).start();
     }
 
-    /**
-     * 10% Smaller Quick Studio Pills with Pure-White Vector Icons!
-     */
     private void refreshBottomSwappableButtons() {
         float d = getResources().getDisplayMetrics().density;
         int[] order = themeManager.getBottomControlOrder();
         float spd = musicService != null ? musicService.getPlaybackSpeed() : 1.0f;
         String speedLabel = String.format(Locale.US, "⚡ %.1fx", spd);
-        String[] labels = {"🕒 Timer", "🔁 " + abRepeatLabel, "🎚 Equali", speedLabel};
+        String eqLabel = is8DSpatialAudioActive() ? "🎧 8D ON" : "🎚 Equali";
+        String[] labels = {"🕒 Timer", "🔁 " + abRepeatLabel, eqLabel, speedLabel};
 
         for (int slot = 0; slot < 4; slot++) {
             final int currentSlot = slot;
@@ -1206,7 +1303,7 @@ public class MainActivity extends AppCompatActivity implements
             bottomSlotBtns[currentSlot].setText(labels[actionType]);
             bottomSlotBtns[currentSlot].setTextColor(Color.WHITE);
             bottomSlotBtns[currentSlot].setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
-            bottomSlotBtns[currentSlot].setOnClickListener(v -> {
+            AudioThreeDotStudioHelper.attachBouncySpring(bottomSlotBtns[currentSlot], () -> {
                 if (musicService == null) return;
                 if (actionType == 1) {
                     onTriggerAbRepeat();
@@ -1265,14 +1362,12 @@ public class MainActivity extends AppCompatActivity implements
         rootLayout.setBackgroundColor(t.bgPrimary);
         fullPlayerOverlay.setBackgroundColor(t.bgPrimary);
 
-        // Sleek Capsule Bottom Navigation Bar
         GradientDrawable navBg = new GradientDrawable();
         navBg.setColor(Color.parseColor("#101724"));
         navBg.setCornerRadius(22f * d);
         navBg.setStroke(Math.max(1, (int) (1.2f * d)), Color.parseColor("#44FFFFFF"));
         bottomNavBar.setBackground(navBg);
 
-        // Top Header Brand Name: "Hybrid Music Player ★"
         appTitleText.setText(themeManager.getHeaderTitle() + " " + themeManager.getHeaderStar());
         appTitleText.setTextColor(Color.WHITE);
 
@@ -1291,7 +1386,6 @@ public class MainActivity extends AppCompatActivity implements
         randomPlayBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
         randomPlayBtn.setTextColor(Color.WHITE);
 
-        // Mini-Player Card & Pure-White Vector Icons
         GradientDrawable miniBg = new GradientDrawable();
         miniBg.setColor(Color.parseColor("#121C2E"));
         miniBg.setCornerRadius(20f * d);
@@ -1307,7 +1401,6 @@ public class MainActivity extends AppCompatActivity implements
         miniThreeDotBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("THREE_DOTS", d));
         miniThreeDotBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
-        // Full Player Top Row Pure-White Vector Icons
         fpCloseBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("DOWN_ARROW", d));
         fpCloseBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
@@ -1321,7 +1414,6 @@ public class MainActivity extends AppCompatActivity implements
         fpQuickLyricsBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
         fpQuickLyricsBtn.setTextColor(Color.WHITE);
 
-        // Full Player 10% Smaller Sleek Transport Controls (All Pure White #FFFFFF)
         fpShuffleBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("SHUFFLE", d));
         fpShuffleBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
 
@@ -1413,9 +1505,12 @@ public class MainActivity extends AppCompatActivity implements
 
         if (cur != null) {
             miniTitle.setText(cur.title);
-            miniArtist.setText(cur.artist);
+            String modeBadge = "";
+            if (is8DSpatialAudioActive()) modeBadge += " • 8D Surround";
+            if (musicService.getFrequencyTuningMode() != 0) modeBadge += " • " + musicService.getFrequencyTuningLabel();
+            miniArtist.setText(cur.artist + modeBadge);
             fpSongTitle.setText(cur.title);
-            fpSongArtist.setText(cur.artist);
+            fpSongArtist.setText(cur.artist + modeBadge);
             if (mainAdapter != null) mainAdapter.setActiveSongId(cur.id);
 
             MediaArtLoader.loadSongArtInto(this, cur, themeManager, miniThumbnail);
