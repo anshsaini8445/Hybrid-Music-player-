@@ -18,16 +18,18 @@ public class WaveformSeekBarView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF barRect = new RectF();
 
-    private static final int BAR_COUNT = 46;
-    private final float[] barHeights = new float[BAR_COUNT];
+    private static final int BAR_COUNT = 48;
+    private final float[] baseHeights = new float[BAR_COUNT];
+    private final float[] liveHeights = new float[BAR_COUNT];
 
-    private float progressFraction = 0f; // 0.0 to 1.0
-    private float markerAFraction = -1f; // A-B Repeat Start
-    private float markerBFraction = -1f; // A-B Repeat End
-    private boolean isWaveformStyle = true; // true = Lambe Dande, false = Simple Player Line
+    private float progressFraction = 0f;
+    private float markerAFraction = -1f;
+    private float markerBFraction = -1f;
+    private boolean isWaveformStyle = true;
     private boolean isPlaying = false;
+    private boolean isUserScrubbing = false;
     private float animPhase = 0f;
-    private int accentColor = Color.parseColor("#00E5FF");
+    private int accentColor = Color.WHITE;
 
     private OnWaveformSeekListener seekListener;
 
@@ -43,9 +45,9 @@ public class WaveformSeekBarView extends View {
 
     private void initBars() {
         for (int i = 0; i < BAR_COUNT; i++) {
-            // Musical wave pattern for the tall bars ("Lambe-Lambe Dande")
-            float wave = (float) (0.30 + 0.65 * Math.abs(Math.sin(i * 0.42f) * Math.cos(i * 0.19f)));
-            barHeights[i] = Math.min(1.0f, Math.max(0.22f, wave));
+            float wave = (float) (0.28 + 0.68 * Math.abs(Math.sin(i * 0.44f) * Math.cos(i * 0.21f)));
+            baseHeights[i] = Math.min(1.0f, Math.max(0.22f, wave));
+            liveHeights[i] = baseHeights[i];
         }
     }
 
@@ -54,13 +56,15 @@ public class WaveformSeekBarView extends View {
     }
 
     public void setProgressFraction(float fraction) {
-        this.progressFraction = Math.max(0f, Math.min(1f, fraction));
-        invalidate();
+        if (!isUserScrubbing) {
+            this.progressFraction = Math.max(0f, Math.min(1f, fraction));
+            postInvalidateOnAnimation();
+        }
     }
 
     public void setWaveformStyle(boolean waveformStyle) {
         this.isWaveformStyle = waveformStyle;
-        invalidate();
+        postInvalidateOnAnimation();
     }
 
     public boolean isWaveformStyle() {
@@ -69,24 +73,25 @@ public class WaveformSeekBarView extends View {
 
     public void setPlaying(boolean playing) {
         this.isPlaying = playing;
-        invalidate();
+        postInvalidateOnAnimation();
     }
 
     public void setAccentColor(int color) {
         this.accentColor = color;
-        invalidate();
+        postInvalidateOnAnimation();
     }
 
     public void setABMarkers(float fractionA, float fractionB) {
         this.markerAFraction = fractionA;
         this.markerBFraction = fractionB;
-        invalidate();
+        postInvalidateOnAnimation();
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int action = event.getAction();
+        int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_UP) {
+            isUserScrubbing = (action != MotionEvent.ACTION_UP);
             float w = getWidth();
             if (w > 0) {
                 float frac = Math.max(0f, Math.min(1f, event.getX() / w));
@@ -94,9 +99,12 @@ public class WaveformSeekBarView extends View {
                 if (seekListener != null) {
                     seekListener.onSeekToFraction(frac);
                 }
-                invalidate();
+                postInvalidateOnAnimation();
             }
             return true;
+        } else if (action == MotionEvent.ACTION_CANCEL) {
+            isUserScrubbing = false;
+            postInvalidateOnAnimation();
         }
         return super.onTouchEvent(event);
     }
@@ -109,78 +117,97 @@ public class WaveformSeekBarView extends View {
         if (w <= 0 || h <= 0) return;
 
         if (isPlaying) {
-            animPhase += 0.25f;
+            animPhase += 0.24f;
         }
 
-        float cy = h / 2f;
+        float cy = h * 0.46f;
 
         if (isWaveformStyle) {
-            // Mode 1: Tall Waveform Bars ("Lambe-Lambe Dande")
-            float totalSpacing = w * 0.32f;
+            float totalSpacing = w * 0.30f;
             float barWidth = (w - totalSpacing) / BAR_COUNT;
             float gap = totalSpacing / (BAR_COUNT + 1);
             int activeBarLimit = Math.round(progressFraction * BAR_COUNT);
 
             for (int i = 0; i < BAR_COUNT; i++) {
+                float targetH = baseHeights[i];
+                if (isPlaying) {
+                    float beatWave = (float) Math.abs(Math.sin(animPhase + i * 0.38f) * Math.cos(animPhase * 0.6f - i * 0.2f));
+                    targetH = 0.22f + 0.76f * beatWave;
+                }
+                // Smooth 60FPS liquid interpolation
+                liveHeights[i] += (targetH - liveHeights[i]) * 0.28f;
+
                 float left = gap + i * (barWidth + gap);
                 float right = left + barWidth;
+                float mainBarH = liveHeights[i] * (h * 0.66f);
+                float top = cy - (mainBarH / 2f);
+                float bottom = cy + (mainBarH / 2f);
 
-                float dynamicBoost = 0f;
-                if (isPlaying && Math.abs(i - activeBarLimit) <= 2) {
-                    dynamicBoost = (float) Math.abs(Math.sin(animPhase + i)) * 0.20f;
-                }
-
-                float barH = Math.min(1f, barHeights[i] + dynamicBoost) * (h * 0.82f);
-                float top = cy - (barH / 2f);
-                float bottom = cy + (barH / 2f);
-
+                // Main Waveform Bar (Pure White for played, soft frosted for upcoming)
                 if (i <= activeBarLimit) {
-                    paint.setColor(accentColor);
+                    paint.setColor(Color.WHITE);
                 } else {
-                    paint.setColor(Color.argb(85, 148, 163, 184));
+                    paint.setColor(Color.argb(80, 203, 213, 225));
                 }
-
                 barRect.set(left, top, right, bottom);
                 canvas.drawRoundRect(barRect, barWidth / 2f, barWidth / 2f, paint);
+
+                // 3D Glass Mirror Reflection below each bar
+                float reflectH = mainBarH * 0.26f;
+                paint.setColor(i <= activeBarLimit
+                        ? Color.argb(55, 255, 255, 255)
+                        : Color.argb(22, 203, 213, 225));
+                barRect.set(left, bottom + 3f, right, Math.min(h - 1f, bottom + 3f + reflectH));
+                canvas.drawRoundRect(barRect, barWidth / 2f, barWidth / 2f, paint);
             }
+
+            // Glowing Laser Playhead Cursor
+            float playheadX = Math.max(8f, Math.min(w - 8f, progressFraction * w));
+            paint.setColor(Color.argb(95, 255, 255, 255));
+            canvas.drawCircle(playheadX, cy, isUserScrubbing ? 15f : 10f, paint);
+            paint.setColor(Color.WHITE);
+            barRect.set(playheadX - 2.2f, 2f, playheadX + 2.2f, h - 4f);
+            canvas.drawRoundRect(barRect, 2f, 2f, paint);
         } else {
-            // Mode 2: Simple Clean Player Line
-            float lineHeight = 8f;
+            // Mode 2: Sleek Laser Straight Player Line
+            float lineHeight = 7f;
             paint.setColor(Color.argb(85, 148, 163, 184));
             barRect.set(12f, cy - lineHeight / 2f, w - 12f, cy + lineHeight / 2f);
             canvas.drawRoundRect(barRect, 4f, 4f, paint);
 
             float thumbX = 12f + progressFraction * (w - 24f);
-            paint.setColor(accentColor);
+            paint.setColor(Color.WHITE);
             barRect.set(12f, cy - lineHeight / 2f, thumbX, cy + lineHeight / 2f);
             canvas.drawRoundRect(barRect, 4f, 4f, paint);
 
-            // Glowing Scrubber Thumb
-            canvas.drawCircle(thumbX, cy, 13f, paint);
+            paint.setColor(Color.argb(95, 255, 255, 255));
+            canvas.drawCircle(thumbX, cy, isUserScrubbing ? 18f : 13f, paint);
             paint.setColor(Color.WHITE);
-            canvas.drawCircle(thumbX, cy, 6f, paint);
+            canvas.drawCircle(thumbX, cy, 7f, paint);
         }
 
-        // Draw A-B Repeat Markers if active
+        // A-B Repeat Markers
         if (markerAFraction >= 0f) {
             float ax = markerAFraction * w;
-            paint.setColor(Color.parseColor("#FFD700"));
-            paint.setStrokeWidth(4f);
-            canvas.drawLine(ax, 4f, ax, h - 4f, paint);
-            paint.setTextSize(20f);
-            canvas.drawText("A", ax + 4f, 20f, paint);
+            paint.setColor(Color.WHITE);
+            paint.setStrokeWidth(3.5f);
+            canvas.drawLine(ax, 2f, ax, h - 2f, paint);
+            paint.setTextSize(18f);
+            paint.setFakeBoldText(true);
+            canvas.drawText("A", ax + 4f, 18f, paint);
         }
         if (markerBFraction >= 0f) {
             float bx = markerBFraction * w;
-            paint.setColor(Color.parseColor("#FF2E93"));
-            paint.setStrokeWidth(4f);
-            canvas.drawLine(bx, 4f, bx, h - 4f, paint);
-            paint.setTextSize(20f);
-            canvas.drawText("B", bx + 4f, 20f, paint);
+            paint.setColor(Color.WHITE);
+            paint.setStrokeWidth(3.5f);
+            canvas.drawLine(bx, 2f, bx, h - 2f, paint);
+            paint.setTextSize(18f);
+            paint.setFakeBoldText(true);
+            canvas.drawText("B", bx + 4f, 18f, paint);
         }
 
-        if (isPlaying && isWaveformStyle) {
-            postInvalidateDelayed(45);
+        if (isPlaying) {
+            postInvalidateOnAnimation();
         }
     }
 }
