@@ -9,6 +9,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
@@ -16,9 +17,11 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -45,10 +48,319 @@ public class SettingsSectionHelper {
         default void onPuppyOrLanguageUpdated() {}
         default List<SongItem> getAllSongsForConverter() { return new ArrayList<>(); }
         default void onPlayTrimmedSong(SongItem song, int startSec, int endSec) {}
+        default void onToggleMusicPetVisibility(boolean visible) {}
+        default boolean isMusicPetVisible() { return true; }
+        default String getPlayingTimeText() { return "0h 4min ▶"; }
+        default void onRefreshAndFixSongs() {}
     }
 
     // =========================================================================
-    // 1. ULTRA-MODERN GLASS FLOATING SEARCH SCREEN
+    // 1. SCREENSHOT (1000069379.jpg) "FOR YOU" TAB VIEW (Recently Played + Last Added)
+    // =========================================================================
+    public static View buildMusoForYouView(
+            final Context context,
+            final List<SongItem> allSongs,
+            final ThemeManager themeManager,
+            final SettingsCallbacks callbacks) {
+
+        final float d = context.getResources().getDisplayMetrics().density;
+        ScrollView scroll = new ScrollView(context);
+        scroll.setVerticalScrollBarEnabled(false);
+
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding((int) (14 * d), (int) (8 * d), (int) (14 * d), (int) (24 * d));
+
+        // Section 1: Recently Played + "▶ Play" Pill
+        LinearLayout recHeader = new LinearLayout(context);
+        recHeader.setOrientation(LinearLayout.HORIZONTAL);
+        recHeader.setGravity(Gravity.CENTER_VERTICAL);
+        recHeader.setPadding(0, (int) (4 * d), 0, (int) (10 * d));
+
+        TextView tvRec = new TextView(context);
+        tvRec.setText("Recently Played");
+        tvRec.setTextColor(Color.WHITE);
+        tvRec.setTextSize(19f);
+        tvRec.setTypeface(null, Typeface.BOLD);
+        recHeader.addView(tvRec);
+
+        TextView btnPlayRec = new TextView(context);
+        btnPlayRec.setText("▶ Play");
+        btnPlayRec.setTextColor(Color.WHITE);
+        btnPlayRec.setTextSize(12f);
+        btnPlayRec.setTypeface(null, Typeface.BOLD);
+        btnPlayRec.setPadding((int) (14 * d), (int) (5 * d), (int) (14 * d), (int) (5 * d));
+        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        playLp.leftMargin = (int) (12 * d);
+        btnPlayRec.setLayoutParams(playLp);
+        GradientDrawable pillBg = new GradientDrawable();
+        pillBg.setColor(Color.parseColor("#38FFFFFF"));
+        pillBg.setCornerRadius(16f * d);
+        btnPlayRec.setBackground(pillBg);
+        btnPlayRec.setOnClickListener(v -> {
+            if (!allSongs.isEmpty() && callbacks != null) callbacks.onPlaySearchedSong(allSongs, 0);
+        });
+        recHeader.addView(btnPlayRec);
+        root.addView(recHeader);
+
+        // Top 3 Recently Played Rows
+        int topCount = Math.min(3, allSongs.size());
+        for (int i = 0; i < topCount; i++) {
+            final int pos = i;
+            final SongItem s = allSongs.get(i);
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, (int) (6 * d), 0, (int) (6 * d));
+
+            ImageView img = new ImageView(context);
+            img.setLayoutParams(new LinearLayout.LayoutParams((int) (58 * d), (int) (58 * d)));
+            img.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            MediaArtLoader.loadSongArtInto(context, s, themeManager, img);
+            row.addView(img);
+
+            LinearLayout col = new LinearLayout(context);
+            col.setOrientation(LinearLayout.VERTICAL);
+            col.setPadding((int) (12 * d), 0, (int) (8 * d), 0);
+            col.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView t = new TextView(context);
+            t.setText(s.title);
+            t.setTextColor(Color.WHITE);
+            t.setTextSize(14.5f);
+            t.setTypeface(null, Typeface.BOLD);
+            t.setMaxLines(2);
+            t.setEllipsize(TextUtils.TruncateAt.END);
+            col.addView(t);
+
+            TextView a = new TextView(context);
+            a.setText(s.artist);
+            a.setTextColor(Color.parseColor("#94A3B8"));
+            a.setTextSize(12f);
+            col.addView(a);
+            row.addView(col);
+
+            TextView playCircle = new TextView(context);
+            playCircle.setText("▶");
+            playCircle.setTextColor(Color.WHITE);
+            playCircle.setTextSize(11f);
+            playCircle.setGravity(Gravity.CENTER);
+            playCircle.setLayoutParams(new LinearLayout.LayoutParams((int) (28 * d), (int) (28 * d)));
+            playCircle.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
+            row.addView(playCircle);
+
+            row.setOnClickListener(v -> {
+                if (callbacks != null) callbacks.onPlaySearchedSong(allSongs, pos);
+            });
+            root.addView(row);
+        }
+
+        // Section 2: Last Added + Horizontal Square Cover Cards (Matches Screenshot 1000069379.jpg!)
+        LinearLayout lastHeader = new LinearLayout(context);
+        lastHeader.setOrientation(LinearLayout.HORIZONTAL);
+        lastHeader.setGravity(Gravity.CENTER_VERTICAL);
+        lastHeader.setPadding(0, (int) (16 * d), 0, (int) (10 * d));
+
+        TextView tvLast = new TextView(context);
+        tvLast.setText("Last Added");
+        tvLast.setTextColor(Color.WHITE);
+        tvLast.setTextSize(19f);
+        tvLast.setTypeface(null, Typeface.BOLD);
+        lastHeader.addView(tvLast);
+
+        TextView btnPlayLast = new TextView(context);
+        btnPlayLast.setText("▶ Play");
+        btnPlayLast.setTextColor(Color.WHITE);
+        btnPlayLast.setTextSize(12f);
+        btnPlayLast.setTypeface(null, Typeface.BOLD);
+        btnPlayLast.setPadding((int) (14 * d), (int) (5 * d), (int) (14 * d), (int) (5 * d));
+        btnPlayLast.setLayoutParams(playLp);
+        btnPlayLast.setBackground(pillBg);
+        btnPlayLast.setOnClickListener(v -> {
+            if (!allSongs.isEmpty() && callbacks != null) callbacks.onPlaySearchedSong(allSongs, 0);
+        });
+        lastHeader.addView(btnPlayLast);
+        root.addView(lastHeader);
+
+        HorizontalScrollView hScroll = new HorizontalScrollView(context);
+        hScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout hRow = new LinearLayout(context);
+        hRow.setOrientation(LinearLayout.HORIZONTAL);
+
+        int cardLimit = Math.min(10, allSongs.size());
+        for (int i = 0; i < cardLimit; i++) {
+            final int pos = i;
+            final SongItem s = allSongs.get(i);
+            LinearLayout card = new LinearLayout(context);
+            card.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams((int) (112 * d), ViewGroup.LayoutParams.WRAP_CONTENT);
+            clp.rightMargin = (int) (12 * d);
+            card.setLayoutParams(clp);
+
+            ImageView cov = new ImageView(context);
+            cov.setLayoutParams(new LinearLayout.LayoutParams((int) (112 * d), (int) (112 * d)));
+            cov.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            MediaArtLoader.loadSongArtInto(context, s, themeManager, cov);
+            card.addView(cov);
+
+            TextView ct = new TextView(context);
+            ct.setText(s.title);
+            ct.setTextColor(Color.WHITE);
+            ct.setTextSize(13f);
+            ct.setTypeface(null, Typeface.BOLD);
+            ct.setMaxLines(2);
+            ct.setEllipsize(TextUtils.TruncateAt.END);
+            ct.setPadding(0, (int) (6 * d), 0, (int) (2 * d));
+            card.addView(ct);
+
+            TextView ca = new TextView(context);
+            ca.setText(s.artist);
+            ca.setTextColor(Color.parseColor("#94A3B8"));
+            ca.setTextSize(11.5f);
+            ca.setSingleLine(true);
+            card.addView(ca);
+
+            card.setOnClickListener(v -> {
+                if (callbacks != null) callbacks.onPlaySearchedSong(allSongs, pos);
+            });
+            hRow.addView(card);
+        }
+        hScroll.addView(hRow);
+        root.addView(hScroll);
+
+        // Section 3: Create Playlists Banner Card (Matches Bottom of Screenshot 1000069379.jpg!)
+        LinearLayout banner = new LinearLayout(context);
+        banner.setOrientation(LinearLayout.VERTICAL);
+        banner.setPadding((int) (18 * d), (int) (18 * d), (int) (18 * d), (int) (18 * d));
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        blp.topMargin = (int) (18 * d);
+        banner.setLayoutParams(blp);
+        GradientDrawable banBg = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.parseColor("#EC4899"), Color.parseColor("#6366F1"), Color.parseColor("#0F172A")});
+        banBg.setCornerRadius(20f * d);
+        banner.setBackground(banBg);
+
+        TextView bt1 = new TextView(context);
+        bt1.setText("Create playlists");
+        bt1.setTextColor(Color.WHITE);
+        bt1.setTextSize(18f);
+        bt1.setTypeface(null, Typeface.BOLD);
+        banner.addView(bt1);
+
+        TextView bt2 = new TextView(context);
+        bt2.setText("Enjoy exclusive music during sports, work & drive");
+        bt2.setTextColor(Color.parseColor("#F1F5F9"));
+        bt2.setTextSize(12.5f);
+        bt2.setPadding(0, (int) (4 * d), 0, 0);
+        banner.addView(bt2);
+        root.addView(banner);
+
+        scroll.addView(root);
+        return scroll;
+    }
+
+    // =========================================================================
+    // 2. SCREENSHOT (1000069372.jpg) "PLAYLIST" TAB VIEW
+    // =========================================================================
+    public static View buildMusoPlaylistView(
+            final Context context,
+            final List<SongItem> allSongs,
+            final ThemeManager themeManager,
+            final SettingsCallbacks callbacks) {
+
+        final float d = context.getResources().getDisplayMetrics().density;
+        ScrollView scroll = new ScrollView(context);
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding((int) (14 * d), (int) (10 * d), (int) (14 * d), (int) (24 * d));
+
+        int favCount = 0;
+        for (SongItem s : allSongs) if (themeManager.isFavorite(s.id)) favCount++;
+
+        addMusoPlaylistRow(context, root, d, "＋", "#27272A", "#94A3B8", "New Playlist", "", () ->
+                Toast.makeText(context, "Tap any song's 3-dot menu to add to playlist!", Toast.LENGTH_SHORT).show());
+
+        addMusoPlaylistRow(context, root, d, "♥", "#3B1224", "#FB7185", "Favorite",
+                favCount > 0 ? favCount + " Songs" : "No Song", () -> {
+                    List<SongItem> favs = new ArrayList<>();
+                    for (SongItem s : allSongs) if (themeManager.isFavorite(s.id)) favs.add(s);
+                    if (!favs.isEmpty() && callbacks != null) callbacks.onPlaySearchedSong(favs, 0);
+                    else Toast.makeText(context, "No favorite songs yet", Toast.LENGTH_SHORT).show();
+                });
+
+        addMusoPlaylistRow(context, root, d, "🕒", "#2E1038", "#E879F9", "Recently",
+                allSongs.isEmpty() ? "No Song" : Math.min(25, allSongs.size()) + " Songs", () -> {
+                    if (!allSongs.isEmpty() && callbacks != null) callbacks.onPlaySearchedSong(allSongs, 0);
+                });
+
+        addMusoPlaylistRow(context, root, d, "☰♪", "#1E1B4B", "#818CF8", "Song With Lyrics",
+                allSongs.size() + " Songs", () -> {
+                    if (!allSongs.isEmpty() && callbacks != null) callbacks.onPlaySearchedSong(allSongs, 0);
+                });
+
+        addMusoPlaylistRow(context, root, d, "⇄", "#27272A", "#94A3B8", "Playlist Transfer",
+                "Import & Sync Local Folders", () -> {
+                    if (callbacks != null) callbacks.onRefreshAndFixSongs();
+                });
+
+        scroll.addView(root);
+        return scroll;
+    }
+
+    private static void addMusoPlaylistRow(
+            Context context, LinearLayout parent, float d,
+            String symbol, String boxHex, String iconHex,
+            String title, String subtitle, Runnable onClick) {
+
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, (int) (8 * d), 0, (int) (8 * d));
+
+        TextView iconBox = new TextView(context);
+        iconBox.setText(symbol);
+        iconBox.setTextColor(Color.parseColor(iconHex));
+        iconBox.setTextSize(24f);
+        iconBox.setTypeface(null, Typeface.BOLD);
+        iconBox.setGravity(Gravity.CENTER);
+        iconBox.setLayoutParams(new LinearLayout.LayoutParams((int) (68 * d), (int) (68 * d)));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor(boxHex));
+        bg.setCornerRadius(14f * d);
+        iconBox.setBackground(bg);
+        row.addView(iconBox);
+
+        LinearLayout col = new LinearLayout(context);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding((int) (16 * d), 0, 0, 0);
+        col.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView t = new TextView(context);
+        t.setText(title);
+        t.setTextColor(Color.WHITE);
+        t.setTextSize(16.5f);
+        t.setTypeface(null, Typeface.BOLD);
+        col.addView(t);
+
+        if (subtitle != null && !subtitle.isEmpty()) {
+            TextView s = new TextView(context);
+            s.setText(subtitle);
+            s.setTextColor(Color.parseColor("#94A3B8"));
+            s.setTextSize(13f);
+            s.setPadding(0, (int) (2 * d), 0, 0);
+            col.addView(s);
+        }
+        row.addView(col);
+
+        AudioThreeDotStudioHelper.attachBouncySpring(row, onClick);
+        parent.addView(row);
+    }
+
+    // =========================================================================
+    // 3. ULTRA-MODERN SEARCH SCREEN
     // =========================================================================
     public static View buildModernSearchScreen(
             final Context context,
@@ -61,7 +373,6 @@ public class SettingsSectionHelper {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding((int) (12 * d), (int) (6 * d), (int) (12 * d), (int) (6 * d));
 
-        // Top Glass Status Header
         LinearLayout topPod = new LinearLayout(context);
         topPod.setOrientation(LinearLayout.HORIZONTAL);
         topPod.setGravity(Gravity.CENTER_VERTICAL);
@@ -73,14 +384,13 @@ public class SettingsSectionHelper {
         topPod.setBackground(podBg);
 
         final TextView statusTv = new TextView(context);
-        statusTv.setText("✨ AI Instant Studio Radar  •  " + allSongs.size() + " Songs");
+        statusTv.setText("✨ Instant Studio Search  •  " + allSongs.size() + " Songs");
         statusTv.setTextColor(Color.WHITE);
         statusTv.setTextSize(13f);
         statusTv.setTypeface(null, Typeface.BOLD);
         topPod.addView(statusTv, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         root.addView(topPod);
 
-        // Center Results List
         final RecyclerView searchRecycler = new RecyclerView(context);
         searchRecycler.setLayoutManager(new LinearLayoutManager(context));
         LinearLayout.LayoutParams rvLp = new LinearLayout.LayoutParams(
@@ -92,7 +402,6 @@ public class SettingsSectionHelper {
         final List<SongItem> filteredList = new ArrayList<>(allSongs);
         final TextView[] pillBtns = new TextView[5];
 
-        // Sleek Floating Filter Chips
         HorizontalScrollView pillScroll = new HorizontalScrollView(context);
         pillScroll.setHorizontalScrollBarEnabled(false);
         pillScroll.setPadding(0, (int) (6 * d), 0, (int) (6 * d));
@@ -101,7 +410,6 @@ public class SettingsSectionHelper {
         pillRow.setOrientation(LinearLayout.HORIZONTAL);
         String[] titles = {"All (" + allSongs.size() + ")", "🎵 Audio", "🎬 Video-Audio", "❤️ Liked", "🔥 DJ / Bass"};
 
-        // Ultra-Modern Glowing Glass Search Capsule at Bottom
         LinearLayout searchCapsule = new LinearLayout(context);
         searchCapsule.setOrientation(LinearLayout.HORIZONTAL);
         searchCapsule.setGravity(Gravity.CENTER_VERTICAL);
@@ -223,7 +531,7 @@ public class SettingsSectionHelper {
     }
 
     // =========================================================================
-    // 2. ULTRA-MODERN BENTO-GRID "ME" SECTION (Settings)
+    // 4. EXACT SCREENSHOT (1000069380.jpg) "ME" SECTION
     // =========================================================================
     public static View buildModernSettingsScreen(
             final Context context,
@@ -238,257 +546,266 @@ public class SettingsSectionHelper {
 
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding((int) (14 * d), (int) (10 * d), (int) (14 * d), (int) (26 * d));
+        root.setPadding((int) (14 * d), (int) (10 * d), (int) (14 * d), (int) (28 * d));
 
-        // 1. TOP LUXURY VIP MEMBERSHIP & MONETIZATION CARD (₹50, ₹60, ₹99)
-        LinearLayout vipCard = createGlassBentoCard(context, d, "#161E32");
-        TextView vipTitle = new TextView(context);
-        vipTitle.setText("👑 HYBRID STUDIO VIP  •  " + themeManager.getActiveVipPlan());
-        vipTitle.setTextColor(Color.WHITE);
-        vipTitle.setTextSize(15f);
-        vipTitle.setTypeface(null, Typeface.BOLD);
-        vipCard.addView(vipTitle);
+        // 1. TOP PROFILE & "👑 Remove Ads" HEADER (Matches Screenshot 1000069380.jpg!)
+        LinearLayout profileRow = new LinearLayout(context);
+        profileRow.setOrientation(LinearLayout.HORIZONTAL);
+        profileRow.setGravity(Gravity.CENTER_VERTICAL);
+        profileRow.setPadding((int) (6 * d), (int) (6 * d), (int) (6 * d), (int) (14 * d));
 
-        TextView vipSub = new TextView(context);
-        vipSub.setText("All Pro Audio Features Free • Upgrade for Ad-Free + 300% Extreme Bass:");
-        vipSub.setTextColor(Color.parseColor("#CBD5E1"));
-        vipSub.setTextSize(11.5f);
-        vipSub.setPadding(0, (int) (3 * d), 0, (int) (10 * d));
-        vipCard.addView(vipSub);
+        TextView avatarCircle = new TextView(context);
+        avatarCircle.setText("♫");
+        avatarCircle.setTextColor(Color.WHITE);
+        avatarCircle.setTextSize(28f);
+        avatarCircle.setGravity(Gravity.CENTER);
+        avatarCircle.setLayoutParams(new LinearLayout.LayoutParams((int) (68 * d), (int) (68 * d)));
+        GradientDrawable avBg = new GradientDrawable();
+        avBg.setShape(GradientDrawable.OVAL);
+        avBg.setColor(Color.parseColor("#44FFFFFF"));
+        avBg.setStroke(Math.max(2, (int) (2 * d)), Color.WHITE);
+        avatarCircle.setBackground(avBg);
+        profileRow.addView(avatarCircle);
 
-        LinearLayout plansRow = new LinearLayout(context);
-        plansRow.setOrientation(LinearLayout.HORIZONTAL);
-        plansRow.setWeightSum(3f);
+        LinearLayout loginCol = new LinearLayout(context);
+        loginCol.setOrientation(LinearLayout.VERTICAL);
+        loginCol.setPadding((int) (16 * d), 0, 0, 0);
+        loginCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        addPlanBentoTile(context, plansRow, d, "₹50 Plan", "Silver VIP", 50, themeManager, callbacks);
-        addPlanBentoTile(context, plansRow, d, "₹60 Plan", "Gold VIP", 60, themeManager, callbacks);
-        addPlanBentoTile(context, plansRow, d, "₹99 Plan", "Legend VIP", 99, themeManager, callbacks);
+        TextView tvLogin = new TextView(context);
+        tvLogin.setText(themeManager.isVipAllThemesUnlocked() ? "VIP Studio Member" : "Login");
+        tvLogin.setTextColor(Color.WHITE);
+        tvLogin.setTextSize(20f);
+        tvLogin.setTypeface(null, Typeface.BOLD);
+        loginCol.addView(tvLogin);
 
-        vipCard.addView(plansRow);
-        root.addView(vipCard);
+        TextView btnRemoveAds = new TextView(context);
+        btnRemoveAds.setText("👑 Remove Ads  •  " + themeManager.getActiveVipPlan());
+        btnRemoveAds.setTextColor(Color.parseColor("#1E293B"));
+        btnRemoveAds.setTextSize(11.5f);
+        btnRemoveAds.setTypeface(null, Typeface.BOLD);
+        btnRemoveAds.setPadding((int) (12 * d), (int) (4 * d), (int) (12 * d), (int) (4 * d));
+        LinearLayout.LayoutParams raLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        raLp.topMargin = (int) (6 * d);
+        btnRemoveAds.setLayoutParams(raLp);
+        GradientDrawable raBg = new GradientDrawable();
+        raBg.setColor(Color.parseColor("#D8E2F0"));
+        raBg.setCornerRadius(14f * d);
+        btnRemoveAds.setBackground(raBg);
+        loginCol.addView(btnRemoveAds);
 
-        // 2. BENTO ROW 1: [🦁 15 CUTE ANIMALS STUDIO FOLDER] + [🌐 LANGUAGE STUDIO FOLDER]
-        LinearLayout bentoRow1 = new LinearLayout(context);
-        bentoRow1.setOrientation(LinearLayout.HORIZONTAL);
-        bentoRow1.setWeightSum(2f);
+        profileRow.addView(loginCol);
+        AudioThreeDotStudioHelper.attachBouncySpring(profileRow, () -> {
+            if (callbacks != null) callbacks.onOpenThemePicker();
+        });
+        root.addView(profileRow);
 
-        LinearLayout animalCard = createGlassBentoCard(context, d, "#131F30");
-        LinearLayout.LayoutParams c1Lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        c1Lp.rightMargin = (int) (6 * d);
-        c1Lp.bottomMargin = (int) (10 * d);
-        animalCard.setLayoutParams(c1Lp);
+        // 2. "Playing Time: 0h 4min ▶" GLASS CARD (Matches Screenshot 1000069380.jpg!)
+        LinearLayout timeCard = new LinearLayout(context);
+        timeCard.setOrientation(LinearLayout.VERTICAL);
+        timeCard.setPadding((int) (18 * d), (int) (16 * d), (int) (18 * d), (int) (16 * d));
+        LinearLayout.LayoutParams tcLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tcLp.bottomMargin = (int) (14 * d);
+        timeCard.setLayoutParams(tcLp);
+        GradientDrawable tcBg = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.parseColor("#2A1228"), Color.parseColor("#18122B")});
+        tcBg.setCornerRadius(18f * d);
+        tcBg.setStroke(Math.max(1, (int) (1.2f * d)), Color.parseColor("#55FFFFFF"));
+        timeCard.setBackground(tcBg);
 
-        TextView acTitle = new TextView(context);
-        acTitle.setText("🦁 Cute Mascot Folder");
-        acTitle.setTextColor(Color.WHITE);
-        acTitle.setTextSize(14f);
-        acTitle.setTypeface(null, Typeface.BOLD);
-        animalCard.addView(acTitle);
+        TextView tvPtLabel = new TextView(context);
+        tvPtLabel.setText("Playing Time");
+        tvPtLabel.setTextColor(Color.parseColor("#CBD5E1"));
+        tvPtLabel.setTextSize(12.5f);
+        timeCard.addView(tvPtLabel);
 
-        TextView acSub = new TextView(context);
-        acSub.setText("15 Cute Animals • 15 Colors\nLion Cub, Penguin, Polar...");
-        acSub.setTextColor(Color.parseColor("#CBD5E1"));
-        acSub.setTextSize(11f);
-        acSub.setPadding(0, (int) (4 * d), 0, 0);
-        animalCard.addView(acSub);
-        AudioThreeDotStudioHelper.attachBouncySpring(animalCard, () ->
-                showCutePuppyStudioFolderDialog(context, themeManager, callbacks));
+        TextView tvPtVal = new TextView(context);
+        tvPtVal.setText(callbacks != null ? callbacks.getPlayingTimeText() : "0h 4min ▶");
+        tvPtVal.setTextColor(Color.parseColor("#F472B6"));
+        tvPtVal.setTextSize(20f);
+        tvPtVal.setTypeface(null, Typeface.BOLD);
+        tvPtVal.setPadding(0, (int) (4 * d), 0, 0);
+        timeCard.addView(tvPtVal);
+        root.addView(timeCard);
 
-        LinearLayout langCard = createGlassBentoCard(context, d, "#131F30");
-        LinearLayout.LayoutParams c2Lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        c2Lp.leftMargin = (int) (6 * d);
-        c2Lp.bottomMargin = (int) (10 * d);
-        langCard.setLayoutParams(c2Lp);
+        // 3. THREE SQUARE CARDS ROW: [👕 Style Center] + [👁️ Hide & Scan] + [🎵 MP3 Convert]
+        LinearLayout triRow = new LinearLayout(context);
+        triRow.setOrientation(LinearLayout.HORIZONTAL);
+        triRow.setWeightSum(3f);
+        LinearLayout.LayoutParams trLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        trLp.bottomMargin = (int) (14 * d);
+        triRow.setLayoutParams(trLp);
 
-        TextView lcTitle = new TextView(context);
-        lcTitle.setText("🌐 Language Folder");
-        lcTitle.setTextColor(Color.WHITE);
-        lcTitle.setTextSize(14f);
-        lcTitle.setTypeface(null, Typeface.BOLD);
-        langCard.addView(lcTitle);
+        addMusoTopSquareCard(context, triRow, d, "👕", "#2D1E3E", "Style Center", () -> {
+            if (callbacks != null) callbacks.onOpenThemePicker();
+        });
 
-        TextView lcSub = new TextView(context);
-        lcSub.setText("Active: " + themeManager.getAppLanguage() + "\nHindi, English, Punjabi...");
-        lcSub.setTextColor(Color.parseColor("#CBD5E1"));
-        lcSub.setTextSize(11f);
-        lcSub.setPadding(0, (int) (4 * d), 0, 0);
-        langCard.addView(lcSub);
-        AudioThreeDotStudioHelper.attachBouncySpring(langCard, () ->
-                showLanguageFolderDialog(context, themeManager, callbacks));
+        addMusoTopSquareCard(context, triRow, d, "👁️", "#1B332B", "Hide & Scan", () -> {
+            if (callbacks != null) callbacks.onRefreshAndFixSongs();
+            Toast.makeText(context, "🔍 Scanned & filtered short audio clips!", Toast.LENGTH_SHORT).show();
+        });
 
-        bentoRow1.addView(animalCard);
-        bentoRow1.addView(langCard);
-        root.addView(bentoRow1);
-
-        // 3. BENTO ROW 2: [📁 SONG SETTINGS FOLDER] + [✂️ CONVERTER & CUTTER FOLDER]
-        LinearLayout bentoRow2 = new LinearLayout(context);
-        bentoRow2.setOrientation(LinearLayout.HORIZONTAL);
-        bentoRow2.setWeightSum(2f);
-
-        LinearLayout songSetCard = createGlassBentoCard(context, d, "#131F30");
-        songSetCard.setLayoutParams(c1Lp);
-        TextView ssTitle = new TextView(context);
-        ssTitle.setText("📁 Song Settings Folder");
-        ssTitle.setTextColor(Color.WHITE);
-        ssTitle.setTextSize(14f);
-        ssTitle.setTypeface(null, Typeface.BOLD);
-        songSetCard.addView(ssTitle);
-
-        TextView ssSub = new TextView(context);
-        ssSub.setText("20+ Themes • Wallpaper\nDisc/Box • Pocket Shake");
-        ssSub.setTextColor(Color.parseColor("#CBD5E1"));
-        ssSub.setTextSize(11f);
-        ssSub.setPadding(0, (int) (4 * d), 0, 0);
-        songSetCard.addView(ssSub);
-        AudioThreeDotStudioHelper.attachBouncySpring(songSetCard, () ->
-                showSongSettingsFolderDialog(context, themeManager, pocketShakeManager, currentVolumePercent, callbacks));
-
-        LinearLayout convCard = createGlassBentoCard(context, d, "#131F30");
-        convCard.setLayoutParams(c2Lp);
-        TextView cvTitle = new TextView(context);
-        cvTitle.setText("✂️ Converter & Cutter");
-        cvTitle.setTextColor(Color.WHITE);
-        cvTitle.setTextSize(14f);
-        cvTitle.setTypeface(null, Typeface.BOLD);
-        convCard.addView(cvTitle);
-
-        TextView cvSub = new TextView(context);
-        cvSub.setText("Aadha Gaana Chalayein\nVideo to MP3 • Ringtone");
-        cvSub.setTextColor(Color.parseColor("#CBD5E1"));
-        cvSub.setTextSize(11f);
-        cvSub.setPadding(0, (int) (4 * d), 0, 0);
-        convCard.addView(cvSub);
-        AudioThreeDotStudioHelper.attachBouncySpring(convCard, () ->
+        addMusoTopSquareCard(context, triRow, d, "🎵⇄", "#1E2D3D", "MP3 Convert", () ->
                 showConverterAndSongCutterFolderDialog(context, themeManager, callbacks));
 
-        bentoRow2.addView(songSetCard);
-        bentoRow2.addView(convCard);
-        root.addView(bentoRow2);
+        root.addView(triRow);
 
-        // 4. FULL-WIDTH ACOUSTIC STUDIO & 200% VOLUME BOOSTER CARD
-        LinearLayout eqMasterCard = createGlassBentoCard(context, d, "#152236");
-        TextView eqTitle = new TextView(context);
-        eqTitle.setText("🎚️ 5-Band Dolby Equalizer • Speed Dial • Timer Studio");
-        eqTitle.setTextColor(Color.WHITE);
-        eqTitle.setTextSize(14f);
-        eqTitle.setTypeface(null, Typeface.BOLD);
-        eqMasterCard.addView(eqTitle);
+        // 4. DARK ROUNDED LIST CONTAINER BELOW (Settings, Help & Feedback, Share, Fix Songs, Group, About, Music Pet)
+        LinearLayout listCard = new LinearLayout(context);
+        listCard.setOrientation(LinearLayout.VERTICAL);
+        listCard.setPadding((int) (14 * d), (int) (10 * d), (int) (14 * d), (int) (10 * d));
+        GradientDrawable lcBg = new GradientDrawable();
+        lcBg.setColor(Color.parseColor("#12151E"));
+        lcBg.setCornerRadius(22f * d);
+        lcBg.setStroke(Math.max(1, (int) d), Color.parseColor("#28FFFFFF"));
+        listCard.setBackground(lcBg);
 
-        TextView eqSub = new TextView(context);
-        eqSub.setText("Tap to open pure buttonless studio sliders, Lofi Pitch Lab & Sleep Timer Dial");
-        eqSub.setTextColor(Color.parseColor("#CBD5E1"));
-        eqSub.setTextSize(11.5f);
-        eqSub.setPadding(0, (int) (3 * d), 0, 0);
-        eqMasterCard.addView(eqSub);
-        AudioThreeDotStudioHelper.attachBouncySpring(eqMasterCard, () -> {
-            if (callbacks != null) callbacks.onOpenEqualizerLab();
+        addMusoMenuItem(context, listCard, d, "⚙️", "Settings (Themes, Language, Shake, EQ)", false, () ->
+                showSongSettingsFolderDialog(context, themeManager, pocketShakeManager, currentVolumePercent, callbacks));
+
+        addMusoMenuItem(context, listCard, d, "💬", "Help & Feedback", false, () ->
+                showRateUsDialog(context));
+
+        addMusoMenuItem(context, listCard, d, "📤", "Share Hybrid Music Player", false, () -> {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("text/plain");
+            share.putExtra(Intent.EXTRA_TEXT, "Listen to music with 60 Studio Themes & Cute Dancing Pet on Hybrid Music Player!");
+            context.startActivity(Intent.createChooser(share, "Share App"));
         });
-        root.addView(eqMasterCard);
 
-        // 5. BOTTOM 3-COLUMN COMPACT BENTO ROW: [⭐ RATE US] + [ℹ️ ABOUT US] + [🔒 PRIVACY]
-        LinearLayout bottomTriRow = new LinearLayout(context);
-        bottomTriRow.setOrientation(LinearLayout.HORIZONTAL);
-        bottomTriRow.setWeightSum(3f);
+        addMusoMenuItem(context, listCard, d, "🔧", "Fix Songs (Repair Covers & Scan)", true, () -> {
+            if (callbacks != null) callbacks.onRefreshAndFixSongs();
+            Toast.makeText(context, "🔧 All songs & album covers repaired!", Toast.LENGTH_SHORT).show();
+        });
 
-        addCompactFooterBento(context, bottomTriRow, d, "⭐ Rate 5★", "Review App", () -> showRateUsDialog(context));
-        addCompactFooterBento(context, bottomTriRow, d, "ℹ️ About Us", "v2.5 Studio", () -> showAboutUsDialog(context, themeManager));
-        addCompactFooterBento(context, bottomTriRow, d, "🔒 Privacy", "Safe & Link", () -> showPrivacyPolicyDialog(context, themeManager));
+        addMusoMenuItem(context, listCard, d, "🌐", "Language Folder (" + themeManager.getAppLanguage() + ")", false, () ->
+                showLanguageFolderDialog(context, themeManager, callbacks));
 
-        root.addView(bottomTriRow);
+        addMusoMenuItem(context, listCard, d, "ℹ️", "About us & Privacy Policy", false, () ->
+                showAboutUsDialog(context, themeManager));
+
+        // Bottom Row: "🐶 Music Pet" with Pink Toggle Switch + Tap to Open 15 Cute Animals Studio!
+        LinearLayout petRow = new LinearLayout(context);
+        petRow.setOrientation(LinearLayout.HORIZONTAL);
+        petRow.setGravity(Gravity.CENTER_VERTICAL);
+        petRow.setPadding((int) (6 * d), (int) (14 * d), (int) (6 * d), (int) (14 * d));
+
+        TextView petIcon = new TextView(context);
+        petIcon.setText("🐶");
+        petIcon.setTextSize(18f);
+        petIcon.setPadding(0, 0, (int) (14 * d), 0);
+        petRow.addView(petIcon);
+
+        TextView petTitle = new TextView(context);
+        petTitle.setText("Music Pet (Tap for 15 Cute Animals)");
+        petTitle.setTextColor(Color.WHITE);
+        petTitle.setTextSize(15.5f);
+        petTitle.setTypeface(null, Typeface.BOLD);
+        petTitle.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        petTitle.setOnClickListener(v -> showCutePuppyStudioFolderDialog(context, themeManager, callbacks));
+        petRow.addView(petTitle);
+
+        Switch petSwitch = new Switch(context);
+        petSwitch.setChecked(callbacks == null || callbacks.isMusicPetVisible());
+        petSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (callbacks != null) callbacks.onToggleMusicPetVisibility(isChecked);
+        });
+        petRow.addView(petSwitch);
+        listCard.addView(petRow);
+
+        root.addView(listCard);
         scroll.addView(root);
         return scroll;
     }
 
-    private static void addCompactFooterBento(
+    private static void addMusoTopSquareCard(
             Context context, LinearLayout parent, float d,
-            String title, String sub, Runnable action) {
+            String emoji, String bgHex, String label, Runnable onClick) {
 
-        LinearLayout box = createGlassBentoCard(context, d, "#121C2B");
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER);
+        card.setPadding((int) (8 * d), (int) (16 * d), (int) (8 * d), (int) (16 * d));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         lp.setMargins((int) (4 * d), 0, (int) (4 * d), 0);
-        box.setLayoutParams(lp);
-        box.setGravity(Gravity.CENTER);
-
-        TextView t = new TextView(context);
-        t.setText(title);
-        t.setTextColor(Color.WHITE);
-        t.setTextSize(13f);
-        t.setTypeface(null, Typeface.BOLD);
-        t.setGravity(Gravity.CENTER);
-        box.addView(t);
-
-        TextView s = new TextView(context);
-        s.setText(sub);
-        s.setTextColor(Color.parseColor("#94A3B8"));
-        s.setTextSize(10.5f);
-        s.setGravity(Gravity.CENTER);
-        box.addView(s);
-
-        AudioThreeDotStudioHelper.attachBouncySpring(box, action);
-        parent.addView(box);
-    }
-
-    private static void addPlanBentoTile(
-            final Context context, LinearLayout parent, float d,
-            final String priceLabel, final String badgeName, final int amountInr,
-            final ThemeManager themeManager, final SettingsCallbacks callbacks) {
-
-        LinearLayout box = new LinearLayout(context);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setGravity(Gravity.CENTER);
-        box.setPadding((int) (8 * d), (int) (10 * d), (int) (8 * d), (int) (10 * d));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        lp.setMargins((int) (4 * d), 0, (int) (4 * d), 0);
-        box.setLayoutParams(lp);
+        card.setLayoutParams(lp);
 
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.parseColor("#24FFFFFF"));
-        bg.setCornerRadius(14f * d);
-        bg.setStroke(Math.max(1, (int) (1.4f * d)), Color.WHITE);
-        box.setBackground(bg);
+        bg.setColor(Color.parseColor(bgHex));
+        bg.setCornerRadius(16f * d);
+        bg.setStroke(Math.max(1, (int) d), Color.parseColor("#33FFFFFF"));
+        card.setBackground(bg);
 
-        TextView tvPrice = new TextView(context);
-        tvPrice.setText(priceLabel);
-        tvPrice.setTextColor(Color.WHITE);
-        tvPrice.setTextSize(14f);
-        tvPrice.setTypeface(null, Typeface.BOLD);
-        box.addView(tvPrice);
+        TextView ic = new TextView(context);
+        ic.setText(emoji);
+        ic.setTextColor(Color.WHITE);
+        ic.setTextSize(24f);
+        ic.setGravity(Gravity.CENTER);
+        card.addView(ic);
 
-        TextView tvSub = new TextView(context);
-        tvSub.setText(badgeName);
-        tvSub.setTextColor(Color.parseColor("#E2E8F0"));
-        tvSub.setTextSize(10.5f);
-        tvSub.setTypeface(null, Typeface.BOLD);
-        box.addView(tvSub);
+        TextView tv = new TextView(context);
+        tv.setText(label);
+        tv.setTextColor(Color.WHITE);
+        tv.setTextSize(12.5f);
+        tv.setTypeface(null, Typeface.BOLD);
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(0, (int) (8 * d), 0, 0);
+        card.addView(tv);
 
-        AudioThreeDotStudioHelper.attachBouncySpring(box, () -> {
-            String[] opts = {
-                    "💳 Pay " + priceLabel + " via UPI App (GPay / PhonePe / Paytm)",
-                    "✨ Activate " + priceLabel + " (" + badgeName + ") Supporter Mode"
-            };
-            SongAdapter.showPureWhiteAudioMenuDialog(context, "Unlock " + priceLabel + " (" + badgeName + ")", opts, which -> {
-                if (which == 0) {
-                    try {
-                        Uri upiUri = Uri.parse("upi://pay?pa=hybridmusic@upi&pn=Hybrid%20Music%20Player&am="
-                                + amountInr + ".00&cu=INR&tn=" + Uri.encode(badgeName));
-                        Intent upiIntent = new Intent(Intent.ACTION_VIEW, upiUri);
-                        context.startActivity(Intent.createChooser(upiIntent, "Pay " + priceLabel + " with UPI"));
-                    } catch (Exception e) {
-                        Toast.makeText(context, "Activating Supporter Badge!", Toast.LENGTH_SHORT).show();
-                    }
-                }
-                themeManager.setActiveVipPlan(priceLabel + " " + badgeName);
-                if (callbacks != null) callbacks.onPuppyOrLanguageUpdated();
-                Toast.makeText(context, "👑 Activated: " + priceLabel + " (" + badgeName + ")!", Toast.LENGTH_LONG).show();
-            });
-        });
-
-        parent.addView(box);
+        AudioThreeDotStudioHelper.attachBouncySpring(card, onClick);
+        parent.addView(card);
     }
 
-    // =========================================================================
-    // CUTE ANIMAL MASCOT STUDIO FOLDER (15 WORLDWIDE BABY ANIMALS + 15 COLOURS)
-    // =========================================================================
+    private static void addMusoMenuItem(
+            Context context, LinearLayout parent, float d,
+            String icon, String title, boolean showPinkDot, Runnable onClick) {
+
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding((int) (6 * d), (int) (14 * d), (int) (6 * d), (int) (14 * d));
+
+        TextView ic = new TextView(context);
+        ic.setText(icon);
+        ic.setTextColor(Color.parseColor("#CBD5E1"));
+        ic.setTextSize(17f);
+        ic.setPadding(0, 0, (int) (14 * d), 0);
+        row.addView(ic);
+
+        TextView tv = new TextView(context);
+        tv.setText(title);
+        tv.setTextColor(Color.WHITE);
+        tv.setTextSize(15.5f);
+        tv.setTypeface(null, Typeface.BOLD);
+        tv.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(tv);
+
+        if (showPinkDot) {
+            View dot = new View(context);
+            LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams((int) (8 * d), (int) (8 * d));
+            dlp.rightMargin = (int) (10 * d);
+            dot.setLayoutParams(dlp);
+            GradientDrawable dBg = new GradientDrawable();
+            dBg.setShape(GradientDrawable.OVAL);
+            dBg.setColor(Color.parseColor("#FF2E93"));
+            dot.setBackground(dBg);
+            row.addView(dot);
+        }
+
+        TextView arrow = new TextView(context);
+        arrow.setText("›");
+        arrow.setTextColor(Color.parseColor("#94A3B8"));
+        arrow.setTextSize(20f);
+        row.addView(arrow);
+
+        AudioThreeDotStudioHelper.attachBouncySpring(row, onClick);
+        parent.addView(row);
+    }
+
     public static void showCutePuppyStudioFolderDialog(
             final Context context,
             final ThemeManager themeManager,
@@ -511,7 +828,6 @@ public class SettingsSectionHelper {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
 
-        // Live Large Standing Cute Animal Preview at Top
         LinearLayout previewBox = new LinearLayout(context);
         previewBox.setOrientation(LinearLayout.HORIZONTAL);
         previewBox.setGravity(Gravity.CENTER_VERTICAL);
@@ -528,7 +844,7 @@ public class SettingsSectionHelper {
         titleCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView tvH = new TextView(context);
-        tvH.setText("🦁 15 Cute Baby Animals Studio");
+        tvH.setText("🐶 Muso Pet & 15 Cute Animals");
         tvH.setTextColor(Color.WHITE);
         tvH.setTextSize(16f);
         tvH.setTypeface(null, Typeface.BOLD);
@@ -546,14 +862,6 @@ public class SettingsSectionHelper {
         ScrollView scroll = new ScrollView(context);
         LinearLayout col = new LinearLayout(context);
         col.setOrientation(LinearLayout.VERTICAL);
-
-        TextView sec1 = new TextView(context);
-        sec1.setText("Choose Cute Baby Animal (15 Worldwide Animals):");
-        sec1.setTextColor(Color.WHITE);
-        sec1.setTextSize(13.5f);
-        sec1.setTypeface(null, Typeface.BOLD);
-        sec1.setPadding(0, (int) (4 * d), 0, (int) (8 * d));
-        col.addView(sec1);
 
         for (int i = 0; i < ThemeManager.PUPPY_BREED_NAMES.length; i++) {
             final int breedIdx = i;
@@ -584,14 +892,6 @@ public class SettingsSectionHelper {
             });
             col.addView(row);
         }
-
-        TextView sec2 = new TextView(context);
-        sec2.setText("Choose Coat Colour (15 Colours):");
-        sec2.setTextColor(Color.WHITE);
-        sec2.setTextSize(13.5f);
-        sec2.setTypeface(null, Typeface.BOLD);
-        sec2.setPadding(0, (int) (10 * d), 0, (int) (8 * d));
-        col.addView(sec2);
 
         GridLayout colorGrid = new GridLayout(context);
         colorGrid.setColumnCount(3);
@@ -631,7 +931,7 @@ public class SettingsSectionHelper {
         col.addView(colorGrid);
 
         TextView doneBtn = new TextView(context);
-        doneBtn.setText("Apply Cute Mascot");
+        doneBtn.setText("Apply Music Pet");
         doneBtn.setTextColor(Color.parseColor("#0A0A10"));
         doneBtn.setTextSize(14f);
         doneBtn.setTypeface(null, Typeface.BOLD);
@@ -679,7 +979,7 @@ public class SettingsSectionHelper {
 
         boolean shakeOn = pocketShakeManager != null && pocketShakeManager.isEnabled();
         String[] items = new String[]{
-                "🎨 Choose 20+ Studio Themes (" + themeManager.getCurrentTheme().name + ")",
+                "🎨 Open 60 Studio Themes & VIP Store (" + themeManager.getCurrentTheme().name + ")",
                 "🖼️ Set Custom Gallery Photo as App Background",
                 "🔄 Restore Clean Default Theme Background",
                 "🔊 Master Volume 200% Booster (Current: " + currentVolumePercent + "%)",
@@ -690,7 +990,7 @@ public class SettingsSectionHelper {
                 "⭐ Customize Top Header Name & Star Badge"
         };
 
-        SongAdapter.showPureWhiteAudioMenuDialog(context, "📁 Song & Player Settings Folder", items, which -> {
+        SongAdapter.showPureWhiteAudioMenuDialog(context, "⚙️ Song & Player Settings", items, which -> {
             if (callbacks == null) return;
             switch (which) {
                 case 0: callbacks.onOpenThemePicker(); break;
@@ -709,7 +1009,7 @@ public class SettingsSectionHelper {
         });
     }
 
-    private static void showConverterAndSongCutterFolderDialog(
+    public static void showConverterAndSongCutterFolderDialog(
             final Context context, final ThemeManager themeManager, final SettingsCallbacks callbacks) {
 
         final List<SongItem> allSongs = callbacks != null ? callbacks.getAllSongsForConverter() : new ArrayList<>();
@@ -722,7 +1022,7 @@ public class SettingsSectionHelper {
                 "🎛️ Open Lofi / Slowed + Reverb & Pitch Converter"
         };
 
-        SongAdapter.showPureWhiteAudioMenuDialog(context, "✂️ Audio Converter & Song Editor", tools, which -> {
+        SongAdapter.showPureWhiteAudioMenuDialog(context, "🎵 MP3 Convert & Song Cutter", tools, which -> {
             if (allSongs.isEmpty()) {
                 Toast.makeText(context, "Pehle phone mein koi song load hone dein", Toast.LENGTH_SHORT).show();
                 return;
@@ -833,74 +1133,22 @@ public class SettingsSectionHelper {
         String[] stars = {
                 "⭐⭐⭐⭐⭐  5 Stars - Mind-Blowing Music Player!",
                 "⭐⭐⭐⭐  4 Stars - Very Smooth & Cute Mascot!",
-                "💬 Share Feedback"
+                "💬 Send Feedback"
         };
-        SongAdapter.showPureWhiteAudioMenuDialog(context, "⭐ Rate Hybrid Music Player", stars, which ->
-                Toast.makeText(context, "❤️ Thank you for rating Hybrid Music Player 5 Stars!", Toast.LENGTH_LONG).show());
+        SongAdapter.showPureWhiteAudioMenuDialog(context, "💬 Help & Feedback", stars, which ->
+                Toast.makeText(context, "❤️ Thank you for supporting Hybrid Music Player!", Toast.LENGTH_LONG).show());
     }
 
     private static void showAboutUsDialog(Context context, ThemeManager tm) {
         new AlertDialog.Builder(context)
                 .setTitle("ℹ️ About Hybrid Music Player")
-                .setMessage("Hybrid Music Player ★ (v2.5 Ultra Edition)\n\n"
+                .setMessage("Hybrid Music Player ★ (v3.0 Muso Studio Edition)\n\n"
                         + "• Built for Android 5 to Android 16\n"
-                        + "• 15 Cute Worldwide Baby Animals with Gravity Physics\n"
+                        + "• 60 Studio Themes (3-Ad Unlock & VIP Store)\n"
+                        + "• Muso 3D Pet + 15 Cute Animals with Gravity Physics\n"
                         + "• Buttonless 5-Band Dolby EQ, 8D Surround & 432Hz/528Hz\n"
-                        + "• Built-in Song Cutter/Trimmer & Video-to-Audio Engine\n"
                         + "• Status: " + tm.getActiveVipPlan())
                 .setPositiveButton("Awesome!", null)
                 .show();
-    }
-
-    private static void showPrivacyPolicyDialog(final Context context, final ThemeManager tm) {
-        LinearLayout box = new LinearLayout(context);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(40, 24, 40, 12);
-
-        TextView info = new TextView(context);
-        info.setText("100% Safe & Offline Privacy Policy:\nHybrid Music Player plays your local audio and video songs securely on your phone.\n\nPaste your custom Privacy Policy link below whenever ready:");
-        info.setTextColor(Color.BLACK);
-        info.setTextSize(13.5f);
-        box.addView(info);
-
-        final EditText urlInput = new EditText(context);
-        urlInput.setHint("https://your-privacy-policy-link.com");
-        urlInput.setText(tm.getPrivacyPolicyUrl());
-        box.addView(urlInput);
-
-        new AlertDialog.Builder(context)
-                .setTitle("🔒 Privacy Policy & Custom Link")
-                .setView(box)
-                .setPositiveButton("Save Link", (d, w) -> {
-                    tm.setPrivacyPolicyUrl(urlInput.getText().toString());
-                    Toast.makeText(context, "Privacy Policy Link Saved!", Toast.LENGTH_SHORT).show();
-                })
-                .setNeutralButton("Open Link", (d, w) -> {
-                    String link = urlInput.getText().toString().trim();
-                    if (!link.isEmpty() && link.startsWith("http")) {
-                        context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(link)));
-                    } else {
-                        Toast.makeText(context, "Abhi link add nahi kiya gaya hai", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Close", null)
-                .show();
-    }
-
-    private static LinearLayout createGlassBentoCard(Context context, float d, String bgHex) {
-        LinearLayout card = new LinearLayout(context);
-        card.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (14 * d);
-        card.setPadding(pad, (int) (12 * d), pad, (int) (12 * d));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.parseColor(bgHex));
-        bg.setCornerRadius(20f * d);
-        bg.setStroke(Math.max(1, (int) (1.3f * d)), Color.WHITE);
-        card.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = (int) (10 * d);
-        card.setLayoutParams(lp);
-        return card;
     }
 }
