@@ -23,6 +23,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
@@ -65,12 +66,13 @@ public class MainActivity extends AppCompatActivity implements
     private RecyclerView mainRecyclerView;
     private SongAdapter mainAdapter;
 
-    private int currentTopTab = 0; // 0=Songs, 1=Folders, 2=Albums, 3=Artists, 4=VideoAudio, 5=Favorites
+    private int currentTopTab = 0; // 0=For You, 1=Songs, 2=Playlist, 3=Video, 4=Folders, 5=Favorites
     private int currentBottomTab = 0; // 0=Songs, 1=Search, 2=Settings(ME)
     private long songIdForPhotoPick = -1;
     private int currentDisplayVolumePercent = 80;
     private boolean isSuperLoud200Boost = false;
     private String abRepeatLabel = "A-B";
+    private boolean isMusicPetVisible = true;
 
     // Main Library Views
     private View rootLayout, topBrandBar, topHeaderBar, miniPlayerBar, miniTextContainer, bottomNavBar, fullPlayerOverlay;
@@ -338,7 +340,6 @@ public class MainActivity extends AppCompatActivity implements
             return false;
         });
 
-        // Instant 1-Click Open on Mini-Player Bar + Left/Right Swipe to Change Song!
         miniPlayerGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDown(MotionEvent e) {
@@ -444,7 +445,6 @@ public class MainActivity extends AppCompatActivity implements
             if (musicService != null) musicService.playNext();
         });
 
-        // SHUFFLE BUTTON: Completely Transforms & Spins 360° on Click!
         AudioThreeDotStudioHelper.attachBouncySpring(fpShuffleBtn, () -> {
             if (musicService != null) {
                 boolean next = !musicService.isShuffle();
@@ -455,7 +455,6 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
-        // REPEAT BUTTON: Completely Transforms & Spins 360° on Click!
         AudioThreeDotStudioHelper.attachBouncySpring(fpRepeatBtn, () -> {
             if (musicService != null) {
                 int nextMode = (musicService.getRepeatMode() + 1) % 3;
@@ -473,31 +472,31 @@ public class MainActivity extends AppCompatActivity implements
     private void applyLanguageLabels() {
         String lang = themeManager.getAppLanguage();
         if ("Hindi".equalsIgnoreCase(lang)) {
-            topTabPills[0].setText("गाने");
-            topTabPills[1].setText("फ़ोल्डर");
-            topTabPills[2].setText("एल्बम");
-            topTabPills[3].setText("सिंगर");
-            topTabPills[4].setText("वीडियो-ऑडियो");
+            topTabPills[0].setText("फॉर यू");
+            topTabPills[1].setText("गाने");
+            topTabPills[2].setText("प्लेलिस्ट");
+            topTabPills[3].setText("वीडियो");
+            topTabPills[4].setText("फ़ोल्डर");
             topTabPills[5].setText("पसंदीदा");
             navSongsBtn.setText("🎵 गाने");
             navSearchBtn.setText("🔍 खोजें");
             navSettingsBtn.setText("✨ ME स्टूडियो");
         } else if ("Punjabi".equalsIgnoreCase(lang)) {
-            topTabPills[0].setText("ਗਾਣੇ");
-            topTabPills[1].setText("ਫੋਲਡਰ");
-            topTabPills[2].setText("ਐਲਬਮ");
-            topTabPills[3].setText("ਗਾਇਕ");
-            topTabPills[4].setText("ਵੀਡੀਓ-ਆਡੀਓ");
+            topTabPills[0].setText("For you");
+            topTabPills[1].setText("ਗਾਣੇ");
+            topTabPills[2].setText("ਪਲੇਲਿਸਟ");
+            topTabPills[3].setText("ਵੀਡੀਓ");
+            topTabPills[4].setText("ਫੋਲਡਰ");
             topTabPills[5].setText("ਪਸੰਦੀਦਾ");
             navSongsBtn.setText("🎵 ਗਾਣੇ");
             navSearchBtn.setText("🔍 ਖੋਜ");
             navSettingsBtn.setText("✨ ME ਸਟੂਡੀਓ");
         } else {
-            topTabPills[0].setText("Songs");
-            topTabPills[1].setText("Folders");
-            topTabPills[2].setText("Albums");
-            topTabPills[3].setText("Artists");
-            topTabPills[4].setText("Video-Audio");
+            topTabPills[0].setText("For you");
+            topTabPills[1].setText("Songs");
+            topTabPills[2].setText("Playlist");
+            topTabPills[3].setText("Video");
+            topTabPills[4].setText("Folders");
             topTabPills[5].setText("Favorites");
             navSongsBtn.setText("🎵 Songs");
             navSearchBtn.setText("🔍 Search");
@@ -616,418 +615,6 @@ public class MainActivity extends AppCompatActivity implements
         });
     }
 
-    // --- AudioThreeDotStudioHelper.StudioPlayerCallbacks Implementation ---
-
-    @Override
-    public SongItem getCurrentSong() {
-        return musicService != null ? musicService.getCurrentSong() : null;
-    }
-
-    @Override
-    public boolean isFavoriteSong() {
-        SongItem cur = getCurrentSong();
-        return cur != null && themeManager.isFavorite(cur.id);
-    }
-
-    @Override
-    public void onToggleFavorite() {
-        SongItem cur = getCurrentSong();
-        if (cur != null) {
-            boolean fav = themeManager.toggleFavorite(cur.id);
-            fpFavoriteHeartBtn.animate().scaleX(1.3f).scaleY(1.3f).setDuration(120)
-                    .withEndAction(() -> fpFavoriteHeartBtn.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start())
-                    .start();
-            syncPlayerUI();
-            Toast.makeText(this, fav ? "❤️ Liked Song!" : "Removed from Liked", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public boolean isSuperLoud200BoostActive() {
-        return isSuperLoud200Boost;
-    }
-
-    @Override
-    public void onToggleSuperLoud200Boost() {
-        isSuperLoud200Boost = !isSuperLoud200Boost;
-        currentDisplayVolumePercent = isSuperLoud200Boost ? 200 : 100;
-        applyVolumePercentToHardware(currentDisplayVolumePercent);
-        if (volumeBannerView != null) {
-            volumeBannerView.showVolume(currentDisplayVolumePercent);
-        }
-        syncPlayerUI();
-        Toast.makeText(this, isSuperLoud200Boost ? "200% Super Loud Boost ON" : "Normal 100% Volume", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public boolean is8DSpatialAudioActive() {
-        return musicService != null && musicService.is8DSpatialAudioEnabled();
-    }
-
-    @Override
-    public void onToggle8DSpatialAudio() {
-        if (musicService != null) {
-            boolean next = !musicService.is8DSpatialAudioEnabled();
-            musicService.set8DSpatialAudioEnabled(next);
-            syncPlayerUI();
-            Toast.makeText(this, next
-                    ? "🎧 8D Spatial Surround ON (360° Rotating Audio!)"
-                    : "8D Spatial Surround OFF", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    @Override
-    public String getFrequencyTuningLabel() {
-        return musicService != null ? musicService.getFrequencyTuningLabel() : "440Hz Studio";
-    }
-
-    @Override
-    public void onCycleFrequencyTuning() {
-        if (musicService != null) {
-            musicService.cycleFrequencyTuningMode();
-            String label = musicService.getFrequencyTuningLabel();
-            syncPlayerUI();
-            Toast.makeText(this, "🎼 Studio Tuning: " + label, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public float getPlaybackSpeed() {
-        return musicService != null ? musicService.getPlaybackSpeed() : 1.0f;
-    }
-
-    @Override
-    public void onChangePlaybackSpeed(float newSpeed) {
-        if (musicService != null) {
-            musicService.setPlaybackSpeed(newSpeed);
-            syncPlayerUI();
-        }
-    }
-
-    @Override
-    public int getLoopMode() {
-        if (musicService == null) return 2;
-        if (musicService.isShuffle()) return 0;
-        if (musicService.getRepeatMode() == 1) return 1;
-        return 2;
-    }
-
-    @Override
-    public void onChangeLoopMode(int newMode) {
-        if (musicService == null) return;
-        if (newMode == 0) {
-            musicService.setShuffle(true);
-            musicService.setRepeatMode(0);
-        } else if (newMode == 1) {
-            musicService.setShuffle(false);
-            musicService.setRepeatMode(1);
-        } else {
-            musicService.setShuffle(false);
-            musicService.setRepeatMode(0);
-        }
-        syncPlayerUI();
-    }
-
-    @Override
-    public void onTriggerAbRepeat() {
-        if (musicService != null) {
-            abRepeatLabel = musicService.cycleABRepeat();
-            refreshBottomSwappableButtons();
-            Toast.makeText(this, "A-B Loop: " + abRepeatLabel, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public String getAbRepeatStatusText() {
-        return abRepeatLabel;
-    }
-
-    @Override
-    public void onOpenEqualizerAndSoundLab() {
-        if (musicService != null) {
-            new EqualizerSpeedTimerDialog(this, musicService, themeManager).show();
-        }
-    }
-
-    @Override
-    public void onOpenSleepTimer() {
-        onOpenEqualizerAndSoundLab();
-    }
-
-    @Override
-    public void onToggleVinylDiscOrBox() {
-        boolean next = !themeManager.isVinylDiscMode();
-        themeManager.setVinylDiscMode(next);
-        fpAlbumArtDiscView.setVinylDiscMode(next);
-        Toast.makeText(this, next ? "Rotating Vinyl Disc + Laser Tonearm View" : "3D Holographic Square Cover View", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onToggleWaveformOrLine() {
-        boolean next = !themeManager.isWaveformMode();
-        themeManager.setWaveformMode(next);
-        fpWaveformSeekBar.setWaveformStyle(next);
-        Toast.makeText(this, next ? "60FPS Liquid Mirror Waveform Bars" : "Laser Straight Line Seekbar", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onPickCustomPhotoForSong(SongItem song) {
-        if (song != null) {
-            songIdForPhotoPick = song.id;
-            Intent pick = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(pick, 902);
-        }
-    }
-
-    @Override
-    public void onSwapBottomControlsOrder() {
-        themeManager.rotateBottomControlOrder();
-        refreshBottomSwappableButtons();
-        Toast.makeText(this, "Studio Controls Order Swapped!", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onDeleteSongPermanently(SongItem song) {
-        if (song != null) {
-            SongAdapter.showPermanentDeleteDialog(this, song, this::loadAllAudioAndVideoSongs);
-        }
-    }
-
-    @Override
-    public void onOpenVipPlansOrWatchAd() {
-        showThemePickerDialog();
-    }
-
-    // --- Media Loading & Navigation ---
-
-    private void checkPermissionsAndLoadMedia() {
-        List<String> needed = new ArrayList<>();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED)
-                needed.add(Manifest.permission.READ_MEDIA_AUDIO);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED)
-                needed.add(Manifest.permission.READ_MEDIA_VIDEO);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-                needed.add(Manifest.permission.POST_NOTIFICATIONS);
-        } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                needed.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        }
-
-        if (!needed.isEmpty()) {
-            ActivityCompat.requestPermissions(this, needed.toArray(new String[0]), 2026);
-        } else {
-            loadAllAudioAndVideoSongs();
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        loadAllAudioAndVideoSongs();
-    }
-
-    private void loadAllAudioAndVideoSongs() {
-        allSongs.clear();
-        ContentResolver resolver = getContentResolver();
-        queryAudioMedia(resolver);
-        queryVideoAsAudioMedia(resolver);
-        selectTopCategoryTab(currentTopTab);
-    }
-
-    private void queryAudioMedia(ContentResolver resolver) {
-        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        String[] proj = {
-                MediaStore.Audio.Media._ID,
-                MediaStore.Audio.Media.TITLE,
-                MediaStore.Audio.Media.ARTIST,
-                MediaStore.Audio.Media.ALBUM,
-                MediaStore.Audio.Media.DATA,
-                MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.SIZE,
-                MediaStore.Audio.Media.DATE_ADDED,
-                MediaStore.Audio.Media.ALBUM_ID
-        };
-        try (Cursor c = resolver.query(uri, proj, null, null, MediaStore.Audio.Media.DATE_ADDED + " DESC")) {
-            if (c != null && c.moveToFirst()) {
-                do {
-                    long id = c.getLong(0);
-                    String title = c.getString(1);
-                    String artist = c.getString(2);
-                    String album = c.getString(3);
-                    String path = c.getString(4);
-                    long duration = c.getLong(5);
-                    long size = c.getLong(6);
-                    long dateAdded = c.getLong(7);
-                    long albumId = c.getLong(8);
-
-                    if (duration < 2500) continue;
-                    String folder = "Music";
-                    if (path != null) {
-                        File parent = new File(path).getParentFile();
-                        if (parent != null) folder = parent.getName();
-                    }
-                    String itemUri = Uri.withAppendedPath(uri, String.valueOf(id)).toString();
-                    SongItem item = new SongItem(id, title, artist, album, path, itemUri, albumId, duration, size, dateAdded, false, folder);
-                    item.customArtUri = themeManager.getSongCustomPhoto(id);
-                    allSongs.add(item);
-                } while (c.moveToNext());
-            }
-        } catch (Exception ignored) {
-        }
-    }
-
-    private void queryVideoAsAudioMedia(ContentResolver resolver) {
-        Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-        String[] proj = {
-                MediaStore.Video.Media._ID,
-                MediaStore.Video.Media.TITLE,
-                MediaStore.Video.Media.ARTIST,
-                MediaStore.Video.Media.ALBUM,
-                MediaStore.Video.Media.DATA,
-                MediaStore.Video.Media.DURATION,
-                MediaStore.Video.Media.SIZE,
-                MediaStore.Video.Media.DATE_ADDED
-        };
-        try (Cursor c = resolver.query(uri, proj, null, null, MediaStore.Video.Media.DATE_ADDED + " DESC")) {
-            if (c != null && c.moveToFirst()) {
-                do {
-                    long id = c.getLong(0);
-                    String title = c.getString(1);
-                    String artist = c.getString(2);
-                    String album = c.getString(3);
-                    String path = c.getString(4);
-                    long duration = c.getLong(5);
-                    long size = c.getLong(6);
-                    long dateAdded = c.getLong(7);
-
-                    if (duration < 3000) continue;
-                    String folder = "Videos";
-                    if (path != null) {
-                        File parent = new File(path).getParentFile();
-                        if (parent != null) folder = parent.getName();
-                    }
-                    String itemUri = Uri.withAppendedPath(uri, String.valueOf(id)).toString();
-                    SongItem item = new SongItem(id, title, artist, album, path, itemUri, id, duration, size, dateAdded, true, folder);
-                    item.customArtUri = themeManager.getSongCustomPhoto(id);
-                    allSongs.add(item);
-                } while (c.moveToNext());
-            }
-        } catch (Exception ignored) {
-        }
-    }
-
-    private void selectTopCategoryTab(int tabIndex) {
-        this.currentTopTab = tabIndex;
-        showBottomSection(0);
-        displayedSongs.clear();
-
-        if (tabIndex == 0) {
-            for (SongItem s : allSongs) if (!s.isVideoAudio) displayedSongs.add(s);
-        } else if (tabIndex == 1) {
-            List<SongItem> copy = new ArrayList<>(allSongs);
-            Collections.sort(copy, (a, b) -> a.folderName.compareToIgnoreCase(b.folderName));
-            displayedSongs.addAll(copy);
-        } else if (tabIndex == 2) {
-            List<SongItem> copy = new ArrayList<>(allSongs);
-            Collections.sort(copy, (a, b) -> a.album.compareToIgnoreCase(b.album));
-            displayedSongs.addAll(copy);
-        } else if (tabIndex == 3) {
-            List<SongItem> copy = new ArrayList<>(allSongs);
-            Collections.sort(copy, (a, b) -> a.artist.compareToIgnoreCase(b.artist));
-            displayedSongs.addAll(copy);
-        } else if (tabIndex == 4) {
-            for (SongItem s : allSongs) if (s.isVideoAudio) displayedSongs.add(s);
-        } else if (tabIndex == 5) {
-            for (SongItem s : allSongs) if (themeManager.isFavorite(s.id)) displayedSongs.add(s);
-        }
-
-        totalSongsCountText.setText(displayedSongs.size() + " Songs");
-        styleTopCategoryPills();
-        refreshMainListAdapter();
-    }
-
-    private void styleTopCategoryPills() {
-        float d = getResources().getDisplayMetrics().density;
-        for (int i = 0; i < 6; i++) {
-            GradientDrawable pill = new GradientDrawable();
-            pill.setCornerRadius(18f * d);
-            if (i == currentTopTab) {
-                pill.setColor(Color.WHITE);
-                topTabPills[i].setTextColor(Color.parseColor("#0A0A10"));
-            } else {
-                pill.setColor(Color.parseColor("#22FFFFFF"));
-                pill.setStroke(Math.max(1, (int) (1.1f * d)), Color.WHITE);
-                topTabPills[i].setTextColor(Color.WHITE);
-            }
-            topTabPills[i].setBackground(pill);
-        }
-    }
-
-    private void refreshMainListAdapter() {
-        mainAdapter = new SongAdapter(this, displayedSongs, themeManager, false, new SongAdapter.OnSongClickListener() {
-            @Override
-            public void onSongClick(int position) {
-                if (musicService != null && position >= 0 && position < displayedSongs.size()) {
-                    musicService.setQueue(displayedSongs, position);
-                    openFullPlayer();
-                }
-            }
-            @Override
-            public void onThreeDotClick(SongItem song, int position) {
-                showSongRowThreeDotMenu(song, position);
-            }
-            @Override
-            public void onSongHoldTwoSeconds(SongItem song, int position) {
-                if (musicService != null && position >= 0 && position < displayedSongs.size()) {
-                    musicService.setQueue(displayedSongs, position);
-                    floatingGuddaView.setPlayingState(true);
-                    floatingGuddaView.triggerGravityJump();
-                    syncPlayerUI();
-                    Toast.makeText(MainActivity.this, "🦁 2s Hold: Playing " + song.title, Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        if (musicService != null && musicService.getCurrentSong() != null) {
-            mainAdapter.setActiveSongId(musicService.getCurrentSong().id);
-        }
-        mainRecyclerView.setAdapter(mainAdapter);
-    }
-
-    private void showBottomSection(int sectionIndex) {
-        this.currentBottomTab = sectionIndex;
-        FrameLayout container = findViewById(R.id.mainContentContainer);
-        container.removeAllViews();
-
-        topHeaderBar.setVisibility(sectionIndex == 0 ? View.VISIBLE : View.GONE);
-
-        navSongsBtn.setTextColor(sectionIndex == 0 ? Color.WHITE : Color.parseColor("#94A3B8"));
-        navSearchBtn.setTextColor(sectionIndex == 1 ? Color.WHITE : Color.parseColor("#94A3B8"));
-        navSettingsBtn.setTextColor(sectionIndex == 2 ? Color.WHITE : Color.parseColor("#94A3B8"));
-
-        View targetView;
-        if (sectionIndex == 0) {
-            targetView = mainRecyclerView;
-        } else if (sectionIndex == 1) {
-            targetView = SettingsSectionHelper.buildModernSearchScreen(this, allSongs, themeManager, this);
-        } else {
-            targetView = SettingsSectionHelper.buildModernSettingsScreen(
-                    this, themeManager, pocketShakeManager, currentDisplayVolumePercent, this);
-        }
-
-        targetView.setAlpha(0f);
-        targetView.setTranslationY(24f);
-        container.addView(targetView);
-        targetView.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(200)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
-
-        applyActiveThemeEverywhere();
-    }
-
     // --- SettingsSectionHelper.SettingsCallbacks Implementation ---
     @Override public void onOpenThemePicker() { showThemePickerDialog(); }
     @Override public void onPickGalleryThemePhoto() {
@@ -1104,6 +691,18 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }, 350);
         }
+    }
+    @Override public void onToggleMusicPetVisibility(boolean visible) {
+        isMusicPetVisible = visible;
+        floatingGuddaView.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+    @Override public boolean isMusicPetVisible() { return isMusicPetVisible; }
+    @Override public String getPlayingTimeText() {
+        return musicService != null ? musicService.getFormattedPlayingTime() : "0h 4min ▶";
+    }
+    @Override public void onRefreshAndFixSongs() {
+        loadAllAudioAndVideoSongs();
+        Toast.makeText(this, "🔧 All songs & album art repaired successfully!", Toast.LENGTH_SHORT).show();
     }
 
     private void openFullPlayer() {
@@ -1230,9 +829,6 @@ public class MainActivity extends AppCompatActivity implements
         }).start();
     }
 
-    /**
-     * Redesigned Studio Pills with Real Embedded Vector Icons (Spectrum, Loop, Speedometer, Sandglass)!
-     */
     private void refreshBottomSwappableButtons() {
         float d = getResources().getDisplayMetrics().density;
         int[] order = themeManager.getBottomControlOrder();
@@ -1429,7 +1025,6 @@ public class MainActivity extends AppCompatActivity implements
         miniPlayPauseBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
         fpPlayPauseBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable(playIconType, d));
 
-        // 1. SHUFFLE VISUAL TRANSFORMATION: Solid White Circle + Dark Icon when ON vs Dark Glass when OFF!
         boolean shufOn = musicService.isShuffle();
         if (shufOn) {
             fpShuffleBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
@@ -1439,7 +1034,6 @@ public class MainActivity extends AppCompatActivity implements
             fpShuffleBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("SHUFFLE", d));
         }
 
-        // 2. REPEAT VISUAL TRANSFORMATION: Repeat 1 ('1' Badge), Loop All (Solid White), Repeat Off (Slash)!
         int rep = musicService.getRepeatMode();
         if (rep == 1) {
             fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
@@ -1452,7 +1046,6 @@ public class MainActivity extends AppCompatActivity implements
             fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_OFF", d));
         }
 
-        // 3. REAL BEZIER HEART (Dil ❤️) LIKE BUTTON
         boolean fav = isFavoriteSong();
         fpFavoriteHeartBtn.setImageDrawable(
                 new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable(fav ? "HEART_ON" : "HEART_OFF", d));
