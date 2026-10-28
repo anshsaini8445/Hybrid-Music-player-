@@ -584,7 +584,7 @@ public class MainActivity extends AppCompatActivity implements
                 "🎧 Toggle 8D Spatial Surround Audio (Free Pro)",
                 "🎼 Switch 432Hz / 528Hz Frequency Tuner (Free Pro)",
                 "🎚️ Open Buttonless Equalizer & Speed/Timer Dial",
-                "🎨 Choose 20+ Studio Themes & Gallery Wallpaper"
+                "🎨 Open 60 Studio Themes & VIP Store"
         };
         SongAdapter.showPureWhiteAudioMenuDialog(this, "Hybrid Studio Tools & Sort", items, which -> {
             if (which == 0) {
@@ -795,25 +795,7 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onOpenVipPlansOrWatchAd() {
-        String[] choices = new String[]{
-                "🎬 Watch 1 Short Sponsor Ad -> Unlock 300% Extreme Turbo Bass (Free)",
-                "🥈 Get ₹50 Silver VIP Plan (Ad-Free + Golden Badge)",
-                "🥇 Get ₹60 Gold VIP Plan (Ad-Free + All Pro Effects)",
-                "👑 Get ₹99 VIP Legend Plan (Lifetime VIP + 300% Extreme Studio)"
-        };
-        SongAdapter.showPureWhiteAudioMenuDialog(this, "👑 Hybrid VIP & Free Ad Rewards", choices, which -> {
-            if (which == 0) {
-                currentDisplayVolumePercent = 200;
-                isSuperLoud200Boost = true;
-                applyVolumePercentToHardware(200);
-                if (musicService != null) musicService.setBassBoostStrength(100);
-                if (volumeBannerView != null) volumeBannerView.showVolume(200);
-                Toast.makeText(this, "🔥 Sponsor Ad Reward Unlocked: 300% Extreme Turbo Bass Active!", Toast.LENGTH_LONG).show();
-            } else {
-                fullPlayerOverlay.setVisibility(View.GONE);
-                showBottomSection(2);
-            }
-        });
+        showThemePickerDialog();
     }
 
     // --- Media Loading & Navigation ---
@@ -1050,8 +1032,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override public void onOpenThemePicker() { showThemePickerDialog(); }
     @Override public void onPickGalleryThemePhoto() {
         songIdForPhotoPick = -1;
-        Intent pick = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(pick, 901);
+        showThemePickerDialog();
     }
     @Override public void onResetThemePhoto() {
         themeManager.setCustomBgUri("");
@@ -1291,19 +1272,13 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    /**
+     * Opens the Complete 60-Theme Store + User Custom Gallery Theme with 3-Ad Lock & Paid VIP Unlock!
+     */
     private void showThemePickerDialog() {
-        ThemeManager.ThemePreset[] presets = themeManager.getAllThemes();
-        String[] names = new String[presets.length + 1];
-        for (int i = 0; i < presets.length; i++) names[i] = presets[i].name;
-        names[presets.length] = "Pick Custom Gallery Photo as Theme Wallpaper";
-
-        SongAdapter.showPureWhiteAudioMenuDialog(this, "Choose Studio Theme (20+ Themes)", names, which -> {
-            if (which < presets.length) {
-                themeManager.setThemeIndex(which);
-                applyActiveThemeEverywhere();
-            } else {
-                onPickGalleryThemePhoto();
-            }
+        themeManager.show60ThemeStoreDialog(this, 901, () -> {
+            applyActiveThemeEverywhere();
+            if (currentBottomTab == 2) showBottomSection(2);
         });
     }
 
@@ -1372,7 +1347,6 @@ public class MainActivity extends AppCompatActivity implements
         fpFavoriteHeartBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
         fpQuickLyricsBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhitePill(d));
 
-        // Style Redesigned Lyrics Studio Glass Card
         GradientDrawable lyricsCardBg = new GradientDrawable();
         lyricsCardBg.setColor(Color.parseColor("#EE090E18"));
         lyricsCardBg.setCornerRadius(26f * d);
@@ -1468,15 +1442,12 @@ public class MainActivity extends AppCompatActivity implements
         // 2. REPEAT VISUAL TRANSFORMATION: Repeat 1 ('1' Badge), Loop All (Solid White), Repeat Off (Slash)!
         int rep = musicService.getRepeatMode();
         if (rep == 1) {
-            // Repeat Current Song (1)
             fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
             fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_ONE_DARK", d));
         } else if (rep == 0) {
-            // Loop All Songs
             fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeActiveSolidWhiteCircle(d));
             fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_ALL_DARK", d));
         } else {
-            // Repeat OFF
             fpRepeatBtn.setBackground(AudioThreeDotStudioHelper.makeFrostedWhiteCircle(d));
             fpRepeatBtn.setImageDrawable(new AudioThreeDotStudioHelper.PureWhiteAudioVectorDrawable("REPEAT_OFF", d));
         }
