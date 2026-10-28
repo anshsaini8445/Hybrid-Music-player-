@@ -67,7 +67,6 @@ public class DancingPuppyView extends View {
         int parentW = parentView.getWidth();
         int parentH = parentView.getHeight();
 
-        // If inside a small dialog preview, just jump on tap
         if (parentH < 400) {
             if (event.getActionMasked() == MotionEvent.ACTION_UP) {
                 internalVelY = -12f;
@@ -91,7 +90,7 @@ public class DancingPuppyView extends View {
 
             case MotionEvent.ACTION_MOVE:
                 float newX = Math.max(8f, Math.min(parentW - getWidth() - 8f, event.getRawX() + dragOffsetX));
-                float newY = Math.max(40f, Math.min(parentH - getHeight() - 80f, event.getRawY() + dragOffsetY));
+                float newY = Math.max(40f, Math.min(parentH - getHeight() - 70f, event.getRawY() + dragOffsetY));
                 velX = (newX - getX()) * 0.4f;
                 setX(newX);
                 setY(newY);
@@ -102,19 +101,17 @@ public class DancingPuppyView extends View {
             case MotionEvent.ACTION_CANCEL:
                 isDragging = false;
                 if (Math.abs(event.getRawX() - downRawX) < 18f && Math.abs(event.getRawY() - downRawY) < 18f) {
-                    // Single Tap: Jump up high with real gravity & switch dance style!
                     danceStyle = (danceStyle + 1) % 3;
                     velY = -20f;
                     internalVelY = -12f;
                     gravityPhysicsActive = true;
                     String[] names = {
-                            "🦁 Cute Mascot: Gravity Jump & Wave!",
-                            "🐧 Cute Mascot: Happy Belly Dance!",
-                            "🐻‍❄️ Cute Mascot: Beat Bounce!"
+                            "🐶 Muso Pet: Gravity Jump & Dance!",
+                            "🦁 Cute Mascot: Happy Belly Wave!",
+                            "🐧 Cute Mascot: Beat Bounce!"
                     };
                     Toast.makeText(getContext(), names[danceStyle], Toast.LENGTH_SHORT).show();
                 } else {
-                    // Released after dragging up -> falls down with real gravity!
                     gravityPhysicsActive = true;
                 }
                 postInvalidateOnAnimation();
@@ -124,36 +121,34 @@ public class DancingPuppyView extends View {
     }
 
     private void updateGravityPhysics() {
-        // 1. Internal jump physics inside canvas
         if (internalBounceY < 0f || internalVelY != 0f) {
             internalBounceY += internalVelY;
-            internalVelY += 1.15f; // Gravity acceleration
+            internalVelY += 1.15f;
             if (internalBounceY >= 0f) {
                 internalBounceY = 0f;
                 if (Math.abs(internalVelY) > 3.5f) {
-                    internalVelY = -internalVelY * 0.52f; // Elastic bounce
+                    internalVelY = -internalVelY * 0.52f;
                 } else {
                     internalVelY = 0f;
                 }
             }
         } else if (isPlaying && Math.sin(phase) > 0.92f) {
-            // Automatic rhythmic gravity hop on music beats!
-            internalVelY = -7.5f;
+            internalVelY = -7.0f;
         }
 
-        // 2. Screen-level gravity fall & floor bounce above Mini-Player dock
         if (gravityPhysicsActive && !isDragging && getParent() instanceof View) {
             View parentView = (View) getParent();
             int pH = parentView.getHeight();
             int pW = parentView.getWidth();
             if (pH > 400) {
                 float d = getResources().getDisplayMetrics().density;
-                float floorY = pH - getHeight() - (118f * d);
+                // Lands right on top of the Mini-Player bar like Screenshot 1000069378.jpg!
+                float floorY = pH - getHeight() - (92f * d);
                 float nextY = getY() + velY;
                 float nextX = getX() + velX;
 
-                velY += 1.35f; // Real downward gravity acceleration
-                velX *= 0.94f; // Air friction
+                velY += 1.35f;
+                velX *= 0.94f;
 
                 if (nextX < 10f) {
                     nextX = 10f;
@@ -166,7 +161,7 @@ public class DancingPuppyView extends View {
                 if (nextY >= floorY) {
                     nextY = floorY;
                     if (Math.abs(velY) > 3.2f) {
-                        velY = -velY * 0.58f; // Bounces off the floor!
+                        velY = -velY * 0.58f;
                     } else {
                         velY = 0f;
                         velX = 0f;
@@ -216,214 +211,173 @@ public class DancingPuppyView extends View {
 
         int userCoatColor = previewColorOverride >= 0
                 ? ThemeManager.PUPPY_COLOR_HEX[previewColorOverride % ThemeManager.PUPPY_COLOR_HEX.length]
-                : (themeManager != null ? themeManager.getSelectedPuppyColor() : Color.WHITE);
+                : (themeManager != null ? themeManager.getSelectedPuppyColor() : Color.parseColor("#FBBF24"));
 
-        // White animals (Polar Cub #2, White Samoyed #8, Snow Bunny #9, Snowy Owl #10) default to crisp snow white if index 0
         int coatColor = userCoatColor;
-        if (breed == 1) {
-            // Emperor Penguin uses sleek tuxedo dark navy-black + white belly
-            coatColor = Color.parseColor("#1E293B");
-        }
+        if (breed == 1) coatColor = Color.parseColor("#1E293B"); // Emperor Penguin Tuxedo
 
-        int accentManeOrEar = ColorUtils.blendARGB(coatColor, Color.parseColor("#78350F"), 0.45f);
-        if (breed == 2 || breed == 8 || breed == 9) {
-            accentManeOrEar = Color.parseColor("#E2E8F0");
-        } else if (breed == 6) {
-            accentManeOrEar = Color.parseColor("#0F172A"); // Panda black ears/patches
-        }
+        int earColor = ColorUtils.blendARGB(coatColor, Color.parseColor("#8B4513"), 0.55f);
+        if (breed == 2 || breed == 8 || breed == 9) earColor = Color.parseColor("#E2E8F0");
+        else if (breed == 6) earColor = Color.parseColor("#0F172A");
 
         float cx = w / 2f;
-        float cy = h * 0.54f;
+        float cy = h * 0.55f;
         float scale = Math.min(w, h) / 110f;
 
-        phase += isPlaying ? 0.22f : 0.06f;
+        phase += isPlaying ? 0.22f : 0.05f;
 
         float swayX = isPlaying ? (float) Math.sin(phase * 0.8f) * (4.5f * scale) : 0f;
         float headTilt = isPlaying ? (float) Math.sin(phase) * 9f : (float) Math.sin(phase * 0.5f) * 3f;
         float rightPawWave = (float) Math.sin(phase * 1.8f) * 14f;
 
-        // 1. Glowing Floor Shadow (Shrinks when jumping high with gravity!)
+        // 1. Floor Shadow
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.argb(85, 255, 255, 255));
+        paint.setColor(Color.argb(80, 0, 0, 0));
         float jumpFactor = Math.max(0.45f, 1.0f + (internalBounceY / 35f));
-        float shadowRx = 26f * scale * jumpFactor;
-        rect.set(cx - shadowRx, h - 10f * scale, cx + shadowRx, h - 3f * scale);
+        float shadowRx = 24f * scale * jumpFactor;
+        rect.set(cx - shadowRx, h - 9f * scale, cx + shadowRx, h - 2f * scale);
         canvas.drawOval(rect, paint);
 
         canvas.save();
         canvas.translate(swayX, internalBounceY * scale);
 
-        // 2. Cute Tail Wagging Behind Body
+        // 2. Cute Wagging Tail
         float tailAngle = (float) Math.sin(phase * 2.5f) * 24f;
         canvas.save();
         canvas.rotate(tailAngle, cx + 14f * scale, cy + 16f * scale);
-        paint.setColor(accentManeOrEar);
-        rect.set(cx + 12f * scale, cy + 6f * scale, cx + 31f * scale, cy + 15f * scale);
+        paint.setColor(earColor);
+        rect.set(cx + 12f * scale, cy + 6f * scale, cx + 30f * scale, cy + 15f * scale);
         canvas.drawRoundRect(rect, 7f * scale, 7f * scale, paint);
-        if (breed == 0) {
-            // Lion Cub fluffy tail tuft!
-            paint.setColor(Color.parseColor("#78350F"));
-            canvas.drawCircle(cx + 31f * scale, cy + 10.5f * scale, 5.5f * scale, paint);
-        }
         canvas.restore();
 
-        // 3. Standing Cute Chubby Body
-        paint.setColor(coatColor);
-        rect.set(cx - 20f * scale, cy - 2f * scale, cx + 20f * scale, cy + 32f * scale);
-        canvas.drawRoundRect(rect, 16f * scale, 16f * scale, paint);
+        // 3. MUSO BLUE HOODIE JACKET BODY (Matches Screenshots 1000069380.jpg & 1000069372.jpg!)
+        paint.setColor(Color.parseColor("#3B82F6")); // Muso Sky-Blue Hoodie Jacket
+        rect.set(cx - 20f * scale, cy - 2f * scale, cx + 20f * scale, cy + 31f * scale);
+        canvas.drawRoundRect(rect, 15f * scale, 15f * scale, paint);
 
-        // Pure White / Cream Belly Tuxedo Patch
+        // White Inner T-Shirt / Belly Center Strip
         paint.setColor(Color.WHITE);
-        rect.set(cx - 13f * scale, cy + 3f * scale, cx + 13f * scale, cy + 29f * scale);
-        canvas.drawOval(rect, paint);
+        rect.set(cx - 8f * scale, cy - 1f * scale, cx + 8f * scale, cy + 29f * scale);
+        canvas.drawRoundRect(rect, 6f * scale, 6f * scale, paint);
 
-        // Tiger / Snow Leopard Cute Stripes on Body
-        if (breed == 4 || breed == 11) {
-            paint.setColor(Color.parseColor("#1E293B"));
-            canvas.drawRoundRect(new RectF(cx - 19f * scale, cy + 8f * scale, cx - 11f * scale, cy + 12f * scale), 3f, 3f, paint);
-            canvas.drawRoundRect(new RectF(cx + 11f * scale, cy + 8f * scale, cx + 19f * scale, cy + 12f * scale), 3f, 3f, paint);
-        }
+        // Cute White Hoodie Drawstrings
+        paint.setStrokeWidth(2.2f * scale);
+        canvas.drawLine(cx - 5f * scale, cy + 2f * scale, cx - 5f * scale, cy + 13f * scale, paint);
+        canvas.drawLine(cx + 5f * scale, cy + 2f * scale, cx + 5f * scale, cy + 13f * scale, paint);
 
-        // Cute Standing Hind Feet with Pink Toe Beans
+        // Standing Feet with Cute Brown/Pink Toe Beans
         float leftStep = isPlaying ? (float) Math.max(0, Math.sin(phase)) * 5f * scale : 0f;
         float rightStep = isPlaying ? (float) Math.max(0, -Math.sin(phase)) * 5f * scale : 0f;
-        paint.setColor(breed == 1 ? Color.parseColor("#FB923C") : Color.WHITE);
+        paint.setColor(Color.WHITE);
         canvas.drawCircle(cx - 11f * scale, cy + 32f * scale - leftStep, 7f * scale, paint);
         canvas.drawCircle(cx + 11f * scale, cy + 32f * scale - rightStep, 7f * scale, paint);
-        if (breed != 1) {
-            paint.setColor(Color.parseColor("#FDA4AF"));
-            canvas.drawCircle(cx - 11f * scale, cy + 32f * scale - leftStep, 3f * scale, paint);
-            canvas.drawCircle(cx + 11f * scale, cy + 32f * scale - rightStep, 3f * scale, paint);
-        }
+        paint.setColor(Color.parseColor("#A16207"));
+        canvas.drawCircle(cx - 11f * scale, cy + 32f * scale - leftStep, 3f * scale, paint);
+        canvas.drawCircle(cx + 11f * scale, cy + 32f * scale - rightStep, 3f * scale, paint);
 
-        // Left Arm Resting Cutely + Right Arm Raised High Waving ("Sidhe Haath Khade Ho")!
-        paint.setColor(coatColor);
-        rect.set(cx - 28f * scale, cy + 4f * scale, cx - 16f * scale, cy + 19f * scale);
-        canvas.drawRoundRect(rect, 7f * scale, 7f * scale, paint);
-
-        // Raised Waving Right Paw!
-        canvas.save();
-        canvas.rotate(rightPawWave, cx + 18f * scale, cy + 4f * scale);
-        rect.set(cx + 15f * scale, cy - 16f * scale, cx + 28f * scale, cy + 8f * scale);
+        // Blue Hoodie Sleeves + Raised Waving Right Paw
+        paint.setColor(Color.parseColor("#2563EB"));
+        rect.set(cx - 27f * scale, cy + 2f * scale, cx - 16f * scale, cy + 18f * scale);
         canvas.drawRoundRect(rect, 7f * scale, 7f * scale, paint);
         paint.setColor(Color.WHITE);
-        canvas.drawCircle(cx + 21.5f * scale, cy - 14f * scale, 5.5f * scale, paint);
-        paint.setColor(Color.parseColor("#FDA4AF"));
-        canvas.drawCircle(cx + 21.5f * scale, cy - 14f * scale, 2.5f * scale, paint);
+        canvas.drawCircle(cx - 21.5f * scale, cy + 18f * scale, 5f * scale, paint);
+
+        canvas.save();
+        canvas.rotate(rightPawWave, cx + 18f * scale, cy + 4f * scale);
+        paint.setColor(Color.parseColor("#2563EB"));
+        rect.set(cx + 15f * scale, cy - 14f * scale, cx + 27f * scale, cy + 8f * scale);
+        canvas.drawRoundRect(rect, 7f * scale, 7f * scale, paint);
+        paint.setColor(Color.WHITE);
+        canvas.drawCircle(cx + 21f * scale, cy - 14f * scale, 5.2f * scale, paint);
         canvas.restore();
 
-        // 4. Oversized Super-Cute Head
+        // 4. OVERSIZED CUTE 3D HEAD + RED/ORANGE STUDIO HEADPHONES
         canvas.save();
         canvas.rotate(headTilt, cx, cy - 12f * scale);
 
-        // Breed #0: Cute Lion Cub Fluffy Mane Scallops Around Head!
+        // Lion Cub Mane Scallops if Breed #0
         if (breed == 0) {
             paint.setColor(Color.parseColor("#B45309"));
             for (int a = 0; a < 12; a++) {
                 double rad = Math.toRadians(a * 30);
                 float mx = cx + (float) Math.cos(rad) * 25f * scale;
                 float my = (cy - 16f * scale) + (float) Math.sin(rad) * 23f * scale;
-                canvas.drawCircle(mx, my, 9.5f * scale, paint);
+                canvas.drawCircle(mx, my, 9f * scale, paint);
             }
         }
 
-        // Cute Ears Based on Animal Breed
-        paint.setColor(accentManeOrEar);
-        if (breed == 9) {
-            // Long Fluffy Snow Bunny Ears
-            rect.set(cx - 20f * scale, cy - 52f * scale, cx - 8f * scale, cy - 22f * scale);
-            canvas.drawRoundRect(rect, 8f * scale, 8f * scale, paint);
-            rect.set(cx + 8f * scale, cy - 52f * scale, cx + 20f * scale, cy - 22f * scale);
-            canvas.drawRoundRect(rect, 8f * scale, 8f * scale, paint);
-            paint.setColor(Color.parseColor("#FDA4AF"));
-            rect.set(cx - 17f * scale, cy - 48f * scale, cx - 11f * scale, cy - 26f * scale);
-            canvas.drawRoundRect(rect, 5f * scale, 5f * scale, paint);
-            rect.set(cx + 11f * scale, cy - 48f * scale, cx + 17f * scale, cy - 26f * scale);
-            canvas.drawRoundRect(rect, 5f * scale, 5f * scale, paint);
-        } else if (breed == 5) {
-            // Big Fluffy Koala Round Ears
-            canvas.drawCircle(cx - 26f * scale, cy - 26f * scale, 12f * scale, paint);
-            canvas.drawCircle(cx + 26f * scale, cy - 26f * scale, 12f * scale, paint);
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(cx - 26f * scale, cy - 26f * scale, 6f * scale, paint);
-            canvas.drawCircle(cx + 26f * scale, cy - 26f * scale, 6f * scale, paint);
-        } else if (breed != 1 && breed != 10) {
-            // Cute Round Cub Ears (Lion Cub, Polar Cub, Tiger Cub, Panda, Red Panda)
-            canvas.drawCircle(cx - 21f * scale, cy - 33f * scale, 9.5f * scale, paint);
-            canvas.drawCircle(cx + 21f * scale, cy - 33f * scale, 9.5f * scale, paint);
-            paint.setColor(Color.parseColor("#FDA4AF"));
-            canvas.drawCircle(cx - 21f * scale, cy - 33f * scale, 4.8f * scale, paint);
-            canvas.drawCircle(cx + 21f * scale, cy - 33f * scale, 4.8f * scale, paint);
-        }
+        // Red/Orange Studio Headphone Band Over Head (Matches Screenshot 1000069372.jpg!)
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(4.5f * scale);
+        paint.setColor(Color.parseColor("#EF4444"));
+        rect.set(cx - 27f * scale, cy - 39f * scale, cx + 27f * scale, cy - 1f * scale);
+        canvas.drawArc(rect, 180f, 180f, false, paint);
+        paint.setStyle(Paint.Style.FILL);
 
-        // Main Chubby Head Circle
-        paint.setColor(coatColor);
-        rect.set(cx - 25f * scale, cy - 36f * scale, cx + 25f * scale, cy + 4f * scale);
-        canvas.drawRoundRect(rect, 22f * scale, 22f * scale, paint);
+        // Floppy Brown-and-Cream Ears
+        paint.setColor(earColor);
+        rect.set(cx - 33f * scale, cy - 28f * scale, cx - 18f * scale, cy - 1f * scale);
+        canvas.drawRoundRect(rect, 10f * scale, 10f * scale, paint);
+        rect.set(cx + 18f * scale, cy - 28f * scale, cx + 33f * scale, cy - 1f * scale);
+        canvas.drawRoundRect(rect, 10f * scale, 10f * scale, paint);
 
-        // Penguin White Face Mask OR Tiger Forehead Stripes
-        if (breed == 1) {
-            paint.setColor(Color.WHITE);
-            rect.set(cx - 19f * scale, cy - 28f * scale, cx + 19f * scale, cy + 2f * scale);
-            canvas.drawOval(rect, paint);
-        } else if (breed == 4) {
-            paint.setColor(Color.parseColor("#1E293B"));
-            canvas.drawLine(cx - 8f * scale, cy - 33f * scale, cx + 8f * scale, cy - 33f * scale, paint);
-            canvas.drawLine(cx - 6f * scale, cy - 29f * scale, cx + 6f * scale, cy - 29f * scale, paint);
-        }
+        // Red/Orange Headphone Earcups on Sides
+        paint.setColor(Color.parseColor("#F97316"));
+        rect.set(cx - 31f * scale, cy - 22f * scale, cx - 21f * scale, cy - 7f * scale);
+        canvas.drawRoundRect(rect, 6f * scale, 6f * scale, paint);
+        rect.set(cx + 21f * scale, cy - 22f * scale, cx + 31f * scale, cy - 7f * scale);
+        canvas.drawRoundRect(rect, 6f * scale, 6f * scale, paint);
 
-        // Cute Cream Snout / Muzzle
+        // Main Head Base (White/Cream with Golden-Brown Forehead Patches like Muso Puppy!)
         paint.setColor(Color.WHITE);
-        rect.set(cx - 12f * scale, cy - 14f * scale, cx + 12f * scale, cy + 1f * scale);
+        rect.set(cx - 24f * scale, cy - 35f * scale, cx + 24f * scale, cy + 3f * scale);
+        canvas.drawRoundRect(rect, 21f * scale, 21f * scale, paint);
+
+        // Cute Brown/Golden Eye-Forehead Patches
+        paint.setColor(coatColor);
+        rect.set(cx - 23f * scale, cy - 34f * scale, cx - 5f * scale, cy - 12f * scale);
+        canvas.drawOval(rect, paint);
+        rect.set(cx + 5f * scale, cy - 34f * scale, cx + 23f * scale, cy - 12f * scale);
         canvas.drawOval(rect, paint);
 
-        // Rosy Pink Kawaii Blushing Cheeks
-        paint.setColor(Color.argb(165, 255, 46, 147));
-        rect.set(cx - 21f * scale, cy - 13f * scale, cx - 12f * scale, cy - 7f * scale);
+        // Cute Eyebrows
+        paint.setColor(Color.parseColor("#78350F"));
+        canvas.drawRoundRect(new RectF(cx - 16f * scale, cy - 28f * scale, cx - 7f * scale, cy - 25f * scale), 3f, 3f, paint);
+        canvas.drawRoundRect(new RectF(cx + 7f * scale, cy - 28f * scale, cx + 16f * scale, cy - 25f * scale), 3f, 3f, paint);
+
+        // Rosy Pink Blushing Cheeks
+        paint.setColor(Color.argb(150, 255, 46, 147));
+        rect.set(cx - 21f * scale, cy - 12f * scale, cx - 12f * scale, cy - 6f * scale);
         canvas.drawOval(rect, paint);
-        rect.set(cx + 12f * scale, cy - 13f * scale, cx + 21f * scale, cy - 7f * scale);
+        rect.set(cx + 12f * scale, cy - 12f * scale, cx + 21f * scale, cy - 6f * scale);
         canvas.drawOval(rect, paint);
 
-        // Panda Dark Eye Patches
-        if (breed == 6) {
-            paint.setColor(Color.parseColor("#0F172A"));
-            canvas.drawCircle(cx - 11f * scale, cy - 19f * scale, 7.5f * scale, paint);
-            canvas.drawCircle(cx + 11f * scale, cy - 19f * scale, 7.5f * scale, paint);
-        }
-
-        // Giant Sparkling Kawaii Eyes
-        paint.setColor(Color.parseColor("#0F172A"));
+        // Big Glossy 3D Eyes
+        paint.setColor(Color.parseColor("#1E1B18"));
         boolean blink = ((int) (phase * 2.1f)) % 25 == 0;
         if (blink) {
             paint.setStrokeWidth(2.6f * scale);
-            canvas.drawLine(cx - 15f * scale, cy - 19f * scale, cx - 7f * scale, cy - 19f * scale, paint);
-            canvas.drawLine(cx + 7f * scale, cy - 19f * scale, cx + 15f * scale, cy - 19f * scale, paint);
+            canvas.drawLine(cx - 15f * scale, cy - 18f * scale, cx - 7f * scale, cy - 18f * scale, paint);
+            canvas.drawLine(cx + 7f * scale, cy - 18f * scale, cx + 15f * scale, cy - 18f * scale, paint);
         } else {
-            canvas.drawCircle(cx - 11f * scale, cy - 19f * scale, 5.5f * scale, paint);
-            canvas.drawCircle(cx + 11f * scale, cy - 19f * scale, 5.5f * scale, paint);
+            canvas.drawCircle(cx - 11f * scale, cy - 18f * scale, 5.6f * scale, paint);
+            canvas.drawCircle(cx + 11f * scale, cy - 18f * scale, 5.6f * scale, paint);
             paint.setColor(Color.WHITE);
-            canvas.drawCircle(cx - 12.6f * scale, cy - 20.8f * scale, 2.2f * scale, paint);
-            canvas.drawCircle(cx - 9.4f * scale, cy - 17.2f * scale, 1.1f * scale, paint);
-            canvas.drawCircle(cx + 9.4f * scale, cy - 20.8f * scale, 2.2f * scale, paint);
-            canvas.drawCircle(cx + 12.6f * scale, cy - 17.2f * scale, 1.1f * scale, paint);
+            canvas.drawCircle(cx - 12.6f * scale, cy - 19.8f * scale, 2.2f * scale, paint);
+            canvas.drawCircle(cx + 9.4f * scale, cy - 19.8f * scale, 2.2f * scale, paint);
         }
 
-        // Cute Nose / Penguin Beak & Happy Smile
-        if (breed == 1 || breed == 10) {
-            // Cute Orange Penguin / Owl Beak
-            paint.setColor(Color.parseColor("#FB923C"));
-            rect.set(cx - 5.5f * scale, cy - 13f * scale, cx + 5.5f * scale, cy - 6.5f * scale);
-            canvas.drawOval(rect, paint);
-        } else {
-            // Cute Pink/Black Cub Button Nose & Happy Tongue
-            paint.setColor(breed == 0 || breed == 4 ? Color.parseColor("#FB7185") : Color.parseColor("#0F172A"));
-            rect.set(cx - 4.5f * scale, cy - 13f * scale, cx + 4.5f * scale, cy - 7.5f * scale);
-            canvas.drawOval(rect, paint);
+        // Cute Button Nose & Open Happy / Yawning Mouth (Matches Screenshot 1000069372.jpg!)
+        paint.setColor(Color.parseColor("#1E1B18"));
+        rect.set(cx - 4.2f * scale, cy - 13f * scale, cx + 4.2f * scale, cy - 8f * scale);
+        canvas.drawOval(rect, paint);
 
-            paint.setColor(Color.parseColor("#FF2E93"));
-            rect.set(cx - 3.8f * scale, cy - 6.5f * scale, cx + 3.8f * scale, cy - 0.5f * scale);
-            canvas.drawRoundRect(rect, 4f * scale, 4f * scale, paint);
-        }
+        paint.setColor(Color.parseColor("#991B1B"));
+        rect.set(cx - 4.5f * scale, cy - 6.5f * scale, cx + 4.5f * scale, cy + 0.5f * scale);
+        canvas.drawOval(rect, paint);
+        paint.setColor(Color.parseColor("#FB7185"));
+        rect.set(cx - 3.2f * scale, cy - 3.5f * scale, cx + 3.2f * scale, cy + 0.5f * scale);
+        canvas.drawOval(rect, paint);
 
         canvas.restore(); // End head tilt
         canvas.restore(); // End bounce
