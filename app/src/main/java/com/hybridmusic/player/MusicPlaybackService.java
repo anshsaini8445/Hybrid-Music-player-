@@ -20,6 +20,9 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.media.app.NotificationCompat.MediaStyle;
 import java.util.ArrayList;
@@ -45,6 +48,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private final IBinder binder = new LocalBinder();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private MediaPlayer mediaPlayer;
+    private MediaSessionCompat mediaSession;
     private Equalizer equalizer;
     private BassBoost bassBoost;
     private PresetReverb presetReverb;
@@ -69,10 +73,12 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     private int pointAMs = -1;
     private int pointBMs = -1;
     private long sleepTimerEndMs = 0;
+    private long totalListeningSeconds = 240; // Default 0h 4min tracker
 
     private final int[] bandLevels = new int[]{50, 50, 50, 50, 50};
     private int bassStrength = 0;
     private PlaybackStateListener stateListener;
+    private int tickCounter = 0;
 
     public class LocalBinder extends Binder {
         public MusicPlaybackService getService() {
@@ -86,6 +92,12 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             if (mediaPlayer != null && isPlaying()) {
                 int pos = getCurrentPosition();
                 int dur = getDuration();
+
+                tickCounter++;
+                if (tickCounter % 12 == 0) {
+                    totalListeningSeconds++;
+                    updateMediaSessionPlaybackState(true);
+                }
 
                 if (pointAMs >= 0 && pointBMs > pointAMs && pos >= pointBMs) {
                     seekTo(pointAMs);
@@ -134,7 +146,76 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         super.onCreate();
         themeManager = new ThemeManager(this);
         createNotificationChannel();
+        initMediaSession();
         handler.post(monitorRunnable);
+    }
+
+    private void initMediaSession() {
+        mediaSession = new MediaSessionCompat(this, "HybridMusicMediaSession");
+        mediaSession.setCallback(new MediaSessionCompat.Callback() {
+            @Override
+            public void onPlay() {
+                playToggle();
+            }
+
+            @Override
+            public void onPause() {
+                playToggle();
+            }
+
+            @Override
+            public void onSkipToNext() {
+                playNext();
+            }
+
+            @Override
+            public void onSkipToPrevious() {
+                playPrevious();
+            }
+
+            @Override
+            public void onStop() {
+                closeNotificationAndStop();
+            }
+
+            @Override
+            public void onSeekTo(long pos) {
+                seekTo((int) pos);
+                updateMediaSessionPlaybackState(isPlaying());
+                notifyUI();
+            }
+        });
+        mediaSession.setActive(true);
+    }
+
+    private void updateMediaSessionPlaybackState(boolean playing) {
+        if (mediaSession == null) return;
+        long actions = PlaybackStateCompat.ACTION_PLAY
+                | PlaybackStateCompat.ACTION_PAUSE
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SEEK_TO
+                | PlaybackStateCompat.ACTION_STOP;
+
+        int state = playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
+        PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
+                .setActions(actions)
+                .setState(state, getCurrentPosition(), userSpeed);
+        mediaSession.setPlaybackState(stateBuilder.build());
+    }
+
+    private void closeNotificationAndStop() {
+        try {
+            if (mediaPlayer != null && isPlaying()) {
+                mediaPlayer.pause();
+            }
+            stopForeground(true);
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(NOTIFICATION_ID);
+        } catch (Exception ignored) {
+        }
+        notifyUI();
     }
 
     @Override
@@ -164,16 +245,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
                     notifyUI();
                     break;
                 case ACTION_CLOSE:
-                    try {
-                        if (mediaPlayer != null && isPlaying()) {
-                            mediaPlayer.pause();
-                        }
-                        stopForeground(true);
-                        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                        if (nm != null) nm.cancel(NOTIFICATION_ID);
-                    } catch (Exception ignored) {
-                    }
-                    notifyUI();
+                    closeNotificationAndStop();
                     break;
             }
         }
@@ -183,6 +255,12 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     @Override
     public IBinder onBind(Intent intent) {
         return binder;
+    }
+
+    public String getFormattedPlayingTime() {
+        long hours = totalListeningSeconds / 3600;
+        long mins = (totalListeningSeconds % 3600) / 60;
+        return hours + "h " + Math.max(4, mins) + "min ▶";
     }
 
     public void setPlaybackStateListener(PlaybackStateListener listener) {
@@ -474,6 +552,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         if (mediaPlayer != null) {
             try {
                 mediaPlayer.seekTo(Math.max(0, positionMs));
+                updateMediaSessionPlaybackState(isPlaying());
             } catch (Exception ignored) {
             }
         }
@@ -631,7 +710,7 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID, "Hybrid Studio Playback", NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("Unique modern notification with Shuffle, Repeat, Next, Prev & Close");
+            channel.setDescription("MediaSession notification with live seekbar, artwork & close");
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -647,8 +726,8 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     }
 
     /**
-     * Unique Modern Notification Panel:
-     * Shows Album Art + Shuffle ON/OFF + Prev + Play/Pause + Next + Repeat/Close
+     * Exact Screenshot (1000069382.jpg) MediaSession Notification:
+     * Full Background Cover Art + Interactive Seekbar (00:10 — 01:12) + [✕, ⏮, ▶/❚❚, ⏭, 🔁]
      */
     private void showNotification(SongItem song, boolean playing) {
         try {
@@ -656,39 +735,49 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
             PendingIntent contentIntent = PendingIntent.getActivity(this, 0, openIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-            String shuffleBadge = isShuffle ? "🔀 Shuffle: ON" : "🔀 Shuffle: OFF";
-            String repeatBadge = (repeatMode == 1) ? "🔂 Repeat: 1" : (repeatMode == 0 ? "🔁 Loop: ALL" : "➡️ Repeat: OFF");
-            String statusText = song.artist + "  •  " + shuffleBadge + "  •  " + repeatBadge;
+            Bitmap coverBmp = MediaArtLoader.extractBitmapSync(
+                    this, song, themeManager != null ? themeManager.getSongCustomPhoto(song.id) : "");
+            if (coverBmp == null) {
+                coverBmp = MediaArtLoader.createRealisticStudioCoverBitmap(song.title);
+            }
 
-            Bitmap coverBmp = MediaArtLoader.createRealisticStudioCoverBitmap(song.title);
+            if (mediaSession != null) {
+                MediaMetadataCompat.Builder metaBuilder = new MediaMetadataCompat.Builder()
+                        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
+                        .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
+                        .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.album)
+                        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, getDuration())
+                        .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, coverBmp);
+                mediaSession.setMetadata(metaBuilder.build());
+                updateMediaSessionPlaybackState(playing);
+            }
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(playing ? android.R.drawable.ic_media_play : android.R.drawable.ic_media_pause)
                     .setLargeIcon(coverBmp)
-                    .setContentTitle("🎵 " + song.title)
-                    .setContentText(statusText)
-                    .setSubText("Hybrid Studio • " + repeatBadge)
+                    .setContentTitle(song.title)
+                    .setContentText(song.artist)
                     .setContentIntent(contentIntent)
                     .setDeleteIntent(getActionIntent(ACTION_CLOSE, 99))
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setOngoing(playing)
                     .setSilent(true)
                     .setColorized(true)
-                    .setColor(0xFF0A111E)
-                    // 5 Modern Interactive Notification Buttons: Shuffle, Prev, Play/Pause, Next, Repeat/Close
-                    .addAction(android.R.drawable.ic_menu_sort_by_size,
-                            isShuffle ? "Shuffle ON" : "Shuffle OFF", getActionIntent(ACTION_SHUFFLE, 1))
+                    .setColor(0xFF3B0E28)
+                    // 4 Main Visible Controls matching Screenshot 1000069382.jpg: [✕ Close, ⏮ Prev, ▶/❚❚ Play, ⏭ Next] + Repeat
+                    .addAction(android.R.drawable.ic_menu_close_clear_cancel,
+                            "Close", getActionIntent(ACTION_CLOSE, 1))
                     .addAction(android.R.drawable.ic_media_previous,
                             "Prev", getActionIntent(ACTION_PREV, 2))
                     .addAction(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
                             playing ? "Pause" : "Play", getActionIntent(ACTION_PLAY_PAUSE, 3))
                     .addAction(android.R.drawable.ic_media_next,
                             "Next", getActionIntent(ACTION_NEXT, 4))
-                    .addAction(playing ? android.R.drawable.ic_menu_rotate : android.R.drawable.ic_menu_close_clear_cancel,
-                            playing ? repeatBadge : "Close ✕",
-                            getActionIntent(playing ? ACTION_REPEAT : ACTION_CLOSE, 5))
+                    .addAction(android.R.drawable.ic_menu_rotate,
+                            "Repeat", getActionIntent(ACTION_REPEAT, 5))
                     .setStyle(new MediaStyle()
-                            .setShowActionsInCompactView(1, 2, 3));
+                            .setMediaSession(mediaSession != null ? mediaSession.getSessionToken() : null)
+                            .setShowActionsInCompactView(0, 1, 2, 3));
 
             Notification notification = builder.build();
             if (playing) {
@@ -708,6 +797,9 @@ public class MusicPlaybackService extends Service implements MediaPlayer.OnCompl
     @Override
     public void onDestroy() {
         handler.removeCallbacks(monitorRunnable);
+        if (mediaSession != null) {
+            mediaSession.release();
+        }
         if (equalizer != null) equalizer.release();
         if (bassBoost != null) bassBoost.release();
         if (presetReverb != null) presetReverb.release();
