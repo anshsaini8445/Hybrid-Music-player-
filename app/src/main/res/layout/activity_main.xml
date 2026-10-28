@@ -19,15 +19,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- 1. TOP BRAND HEADER: "Hybrid Music Player ★" + Song Count + Only 3-Dot Button (Equalizer Removed!) -->
+        <!-- 1. MUSO SUNSET-PURPLE GRADIENT BRAND HEADER (Matches Screenshots 1000069379.jpg, 1000069378.jpg, 1000069372.jpg!) -->
         <LinearLayout
             android:id="@+id/topBrandBar"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="62dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="14dp"
-            android:paddingTop="4dp">
+            android:paddingTop="6dp"
+            android:background="@drawable/bg_muso_sunset_gradient">
 
             <TextView
                 android:id="@+id/appTitleText"
@@ -36,51 +37,51 @@
                 android:layout_weight="1"
                 android:ellipsize="end"
                 android:singleLine="true"
-                android:text="Hybrid Music Player ★"
+                android:text="Muso ★"
                 android:textColor="#FFFFFF"
-                android:textSize="18sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/totalSongsCountText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="10dp"
+                android:layout_marginEnd="12dp"
                 android:singleLine="true"
-                android:text="0 Songs"
-                android:textColor="#CBD5E1"
-                android:textSize="12.5sp"
+                android:text="109 Songs"
+                android:textColor="#FFFFFF"
+                android:textSize="13.5sp"
                 android:textStyle="bold" />
 
-            <!-- Hidden Equalizer Button on Main Screen as Requested -->
             <ImageView
                 android:id="@+id/profileThemeButton"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone" />
 
-            <!-- Only 3-Dot Button Kept on Top Right -->
             <ImageView
                 android:id="@+id/topSortMenuBtn"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:padding="9dp" />
+                android:layout_marginStart="4dp"
+                android:padding="8dp" />
         </LinearLayout>
 
-        <!-- 2. Sleek Category Tabs Row: Songs, Folders, Albums, Artists, Video-Audio, Favorites -->
+        <!-- 2. Sleek Category Tabs Row: For You, Songs, Playlist, Video, Favorites -->
         <LinearLayout
             android:id="@+id/topHeaderBar"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
+            android:layout_height="46dp"
             android:layout_below="@id/topBrandBar"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingHorizontal="10dp"
+            android:background="@drawable/bg_muso_sunset_gradient">
 
             <HorizontalScrollView
                 android:id="@+id/categoryTabsScroll"
                 android:layout_width="match_parent"
-                android:layout_height="36dp"
+                android:layout_height="38dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -93,60 +94,60 @@
                         android:id="@+id/tabAllSongs"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
-                        android:layout_marginEnd="7dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
-                        android:text="Songs"
-                        android:textColor="#0A0A10"
-                        android:textSize="13sp"
+                        android:text="For you"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tabFolders"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
-                        android:layout_marginEnd="7dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
-                        android:text="Folders"
+                        android:text="Songs"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tabPlaylists"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
-                        android:layout_marginEnd="7dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
-                        android:text="Albums"
+                        android:text="Playlist"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tabArtists"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
-                        android:layout_marginEnd="7dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
-                        android:text="Artists"
+                        android:text="Video"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tabVideoAudio"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
-                        android:layout_marginEnd="7dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
-                        android:text="Video-Audio"
+                        android:text="Folders"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -157,13 +158,13 @@
                         android:paddingHorizontal="16dp"
                         android:text="Favorites"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </HorizontalScrollView>
         </LinearLayout>
 
-        <!-- Hidden Shuffle All & Random Row on Main Screen as Requested -->
+        <!-- Hidden Shuffle All Row -->
         <LinearLayout
             android:id="@+id/subShuffleHeaderRow"
             android:layout_width="match_parent"
@@ -243,7 +244,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 4. Bottom Mini-Player Bar (Single-Click Opens Full Player Immediately! 3-Dot Removed!) -->
+        <!-- 4. Compact Floating Mini-Player Bar (With 3-Dot Button) -->
         <LinearLayout
             android:id="@+id/miniPlayerBar"
             android:layout_width="match_parent"
@@ -294,7 +295,7 @@
                     android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Tap here to open Full Player"
+                    android:text="Hi-Res Studio Audio"
                     android:textColor="#D8E2F0"
                     android:textSize="11.5sp"
                     android:textStyle="bold" />
@@ -320,7 +321,6 @@
                 android:layout_height="38dp"
                 android:padding="8dp" />
 
-            <!-- 3-Dot Completely Removed from Mini-Player as Requested -->
             <ImageView
                 android:id="@+id/miniThreeDotBtn"
                 android:layout_width="0dp"
@@ -349,7 +349,7 @@
         android:paddingVertical="12dp"
         android:visibility="gone">
 
-        <!-- Top Bar: Down Arrow + Song Title & Singer + Heart Like Button + 3-Dot Studio -->
+        <!-- Top Bar -->
         <LinearLayout
             android:id="@+id/fpTopBar"
             android:layout_width="match_parent"
@@ -411,7 +411,6 @@
                 android:layout_height="0dp"
                 android:visibility="gone" />
 
-            <!-- Real Heart (Dil ❤️) Like Button in Top Bar + Center Art -->
             <ImageView
                 android:id="@+id/fpFavoriteHeartBtn"
                 android:layout_width="42dp"
@@ -426,7 +425,7 @@
                 android:padding="10dp" />
         </LinearLayout>
 
-        <!-- Center Album Art / Rotating Vinyl Disc + Redesigned Glass Studio Lyrics Card -->
+        <!-- Center Area -->
         <FrameLayout
             android:id="@+id/fpCenterArea"
             android:layout_width="match_parent"
@@ -440,7 +439,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-            <!-- Redesigned Sleek Glass Lyrics Pill on Bottom-Right -->
             <TextView
                 android:id="@+id/fpQuickLyricsBtn"
                 android:layout_width="wrap_content"
@@ -454,30 +452,20 @@
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
-            <!-- Redesigned Ultra-Modern Spotify/Apple Style Lyrics Studio Card -->
             <LinearLayout
                 android:id="@+id/fpLyricsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="#EE090E18"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="16dp"
                 android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="✨ SYNCHRONIZED STUDIO LYRICS"
-                    android:textColor="#CBD5E1"
-                    android:textSize="11.5sp"
-                    android:textStyle="bold" />
-
                 <ScrollView
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:scrollbars="none">
+                    android:layout_weight="1">
 
                     <TextView
                         android:id="@+id/fpLyricsText"
@@ -486,7 +474,7 @@
                         android:gravity="center"
                         android:lineSpacingExtra="8dp"
                         android:padding="8dp"
-                        android:text="Tap Sync Online Lyrics below..."
+                        text="Tap Sync Online Lyrics below..."
                         android:textColor="#FFFFFF"
                         android:textSize="16.5sp"
                         android:textStyle="bold" />
@@ -537,7 +525,7 @@
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Redesigned Studio Components Row (With Real Vector Icons for Equali, A-B, 1.0x Speed, Timer) -->
+        <!-- Studio Components Row -->
         <LinearLayout
             android:id="@+id/fpBottomSwappableRow"
             android:layout_width="match_parent"
@@ -602,7 +590,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Pure-White Waveform ("Lambe Dande") & Time Labels -->
+        <!-- Seekbar Section -->
         <LinearLayout
             android:id="@+id/fpSeekSection"
             android:layout_width="match_parent"
@@ -643,7 +631,7 @@
                 android:layout_height="42dp" />
         </LinearLayout>
 
-        <!-- SLEEK TRANSPORT ROW (Shuffle & Repeat Transform Completely When Toggled!) -->
+        <!-- Transport Row -->
         <LinearLayout
             android:id="@+id/fpMainControlsRow"
             android:layout_width="match_parent"
@@ -687,7 +675,7 @@
                 android:padding="11dp" />
         </LinearLayout>
 
-        <!-- Bottom Dock Bar: Pocket Shake + Playing Queue + Bottom 3-Dot ("⋮") -->
+        <!-- Bottom Footer Row -->
         <LinearLayout
             android:id="@+id/fpBottomFooterRow"
             android:layout_width="match_parent"
@@ -731,7 +719,7 @@
                 android:padding="9dp" />
         </LinearLayout>
 
-        <!-- RIGHT-TO-LEFT SLIDE PLAYING QUEUE OVERLAY -->
+        <!-- Right Slide Queue Overlay -->
         <FrameLayout
             android:id="@+id/queueBackdropOverlay"
             android:layout_width="match_parent"
@@ -785,7 +773,7 @@
         </FrameLayout>
     </RelativeLayout>
 
-    <!-- THE SINGLE LARGER SUPER-CUTE MASCOT WITH REAL GRAVITY PHYSICS (84dp x 84dp!) -->
+    <!-- THE SINGLE SUPER-CUTE MASCOT WITH REAL GRAVITY PHYSICS (84dp x 84dp!) -->
     <com.hybridmusic.player.DancingPuppyView
         android:id="@+id/floatingGuddaView"
         android:layout_width="84dp"
@@ -794,7 +782,7 @@
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="118dp" />
 
-    <!-- SCREENSHOT (1000061267.jpg) TOP VOLUME BANNER PATTI (80% + White Bar + 4 Dots) -->
+    <!-- TOP VOLUME BANNER PATTI (80% + White Bar + 4 Dots) -->
     <com.hybridmusic.player.VolumeBannerView
         android:id="@+id/volumeBannerView"
         android:layout_width="match_parent"
